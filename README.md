@@ -1,5 +1,12 @@
 # Presence Agent
 
+> **Aviso**: este projeto foi feito por um entusiasta, nao um
+> desenvolvedor profissional, com ajuda de IA. Funciona no meu uso
+> pessoal, mas nao passou por revisao de seguranca formal nem por
+> desenvolvedores experientes. Use por sua conta e risco, revise o
+> codigo antes de confiar nele para algo sensivel, e sinta-se a
+> vontade para abrir issues ou PRs com correcoes.
+
 Agente local de monitoramento de presenca por webcam, acionado
 manualmente. Voce abre o programa antes de uma sessao remota (por
 exemplo via AnyDesk) e fecha ao final. Enquanto estiver ativo, ele
