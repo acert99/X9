@@ -138,8 +138,36 @@ Pessoa confirmada por alguns segundos seguidos?
         |
      sim -> notificacao no celular -> cooldown
         |
+Ninguem detectado por absence_seconds?
+        |
+     sim -> cooldown liberado (proxima chegada alerta na hora)
+        |
 Continua monitorando ate o usuario parar
 ```
+
+### Quando voce recebe alerta, e quando nao recebe
+
+Duas regras trabalham juntas:
+
+* **Cooldown** (`cooldown_seconds`, padrao 600): depois de um alerta, novos
+  alertas ficam bloqueados por 10 minutos. Serve para nao encher seu
+  celular de notificacao enquanto a mesma pessoa continua sentada ali.
+* **Liberacao por ausencia** (`absence_seconds`, padrao 60): se ninguem for
+  detectado por 60 segundos seguidos, o cooldown e liberado na hora. Assim
+  uma **chegada nova** volta a alertar mesmo que a anterior tenha sido ha
+  poucos minutos.
+
+Na pratica:
+
+| Situacao | Alerta? |
+|---|---|
+| Alguem senta pela primeira vez | Sim |
+| A mesma pessoa continua sentada | Nao (cooldown) |
+| A pessoa sai por mais de 60s e alguem senta de novo | **Sim** |
+| A pessoa so sai do enquadramento por alguns segundos e volta | Nao (evita alerta repetido por nada) |
+
+Se quiser saber de toda e qualquer chegada, mesmo em intervalos curtos,
+diminua o `absence_seconds`. Se estiver recebendo alerta demais, aumente.
 
 Cada modulo em `src/` faz uma unica coisa e nao conhece os outros:
 

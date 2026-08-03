@@ -31,6 +31,7 @@ detector:
   nms_threshold: 0.45
   positive_frames: 5
   window_seconds: 3
+  absence_seconds: 60
 
 notification:
   cooldown_seconds: 600

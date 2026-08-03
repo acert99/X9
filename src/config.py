@@ -41,6 +41,12 @@ class DetectorConfig:
     nms_threshold: float = 0.45
     positive_frames: int = 5
     window_seconds: float = 3.0
+    # Quanto tempo sem detectar ninguem para considerar que a pessoa foi
+    # embora. Confirmada a ausencia, o cooldown de notificacao e liberado,
+    # entao a proxima chegada volta a alertar na hora em vez de esperar o
+    # cooldown inteiro. Valor alto demais engole chegadas; baixo demais faz
+    # a pessoa que so se afastou da camera gerar alerta novo ao voltar.
+    absence_seconds: float = 60.0
 
 
 @dataclass
@@ -104,5 +110,7 @@ class Config:
             )
         if self.detector.positive_frames < 1:
             raise ValueError("detector.positive_frames deve ser maior ou igual a 1")
+        if self.detector.absence_seconds <= 0:
+            raise ValueError("detector.absence_seconds deve ser maior que zero")
         if self.camera.fps <= 0:
             raise ValueError("camera.fps deve ser maior que zero")

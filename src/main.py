@@ -91,6 +91,7 @@ class X9Agent:
         self._stop_event = threading.Event()
         self._monitor_thread: Optional[threading.Thread] = None
         self._alert_count = 0
+        self._last_detection_at: Optional[float] = None
 
     def run(self) -> None:
         self._logger.info("X9 iniciado, aguardando comando na bandeja")
@@ -109,6 +110,7 @@ class X9Agent:
         self._tray.update_status(monitoring=True, camera_ok=True, detector_ok=True)
         self._stop_event.clear()
         self._temporal_filter.reset()
+        self._last_detection_at = None
         self._monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._monitor_thread.start()
         self._logger.info("Monitoramento iniciado")
@@ -125,6 +127,12 @@ class X9Agent:
         self.stop_monitoring()
         self._logger.info("X9 encerrado")
 
+    def _ausencia_confirmada(self, now: float) -> bool:
+        """Verdadeiro quando ninguem e detectado ha tempo suficiente."""
+        if self._last_detection_at is None:
+            return False
+        return now - self._last_detection_at >= self._config.detector.absence_seconds
+
     def _monitor_loop(self) -> None:
         interval = 1.0 / self._config.camera.fps
 
@@ -137,8 +145,12 @@ class X9Agent:
                 time.sleep(interval)
                 continue
 
+            now = time.time()
             detected, _confidence = self._detector.detect_person(frame)
-            self._temporal_filter.push(time.time(), detected)
+            self._temporal_filter.push(now, detected)
+
+            if detected:
+                self._last_detection_at = now
 
             if self._temporal_filter.is_confirmed():
                 sent = self._notifier.notify()
@@ -149,6 +161,12 @@ class X9Agent:
                         alert_count=self._alert_count,
                     )
                 self._temporal_filter.reset()
+            elif self._ausencia_confirmada(now):
+                # A pessoa foi embora. Libera o cooldown para que a proxima
+                # chegada gere alerta na hora, em vez de ficar engolida pelo
+                # resto da janela de cooldown.
+                self._notifier.rearm()
+                self._last_detection_at = None
 
             elapsed = time.monotonic() - loop_start
             time.sleep(max(0.0, interval - elapsed))

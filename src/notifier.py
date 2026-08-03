@@ -66,6 +66,20 @@ class NotificationService:
                 logger.error("Falha ao enviar notificacao para todas as URLs configuradas")
             return sent
 
+    def rearm(self) -> bool:
+        """Zera o cooldown para que o proximo alerta saia na hora.
+
+        Chamado quando a ausencia da pessoa e confirmada: o cooldown existe
+        para nao repetir alerta enquanto alguem continua sentado, e nao para
+        engolir a chegada seguinte. Retorna True se havia cooldown ativo.
+        """
+        with self._lock:
+            estava_armado = self._last_sent_at is not None
+            self._last_sent_at = None
+        if estava_armado:
+            logger.info("Ausencia confirmada, cooldown liberado para o proximo alerta")
+        return estava_armado
+
     def seconds_until_ready(self) -> float:
         """Quantos segundos faltam para o cooldown liberar um novo alerta."""
         if self._last_sent_at is None:
