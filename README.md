@@ -8,10 +8,32 @@
 > vontade para abrir issues ou PRs com correcoes.
 
 Agente local de monitoramento de presenca por webcam, acionado
-manualmente. Voce abre o programa antes de uma sessao remota (por
-exemplo via AnyDesk) e fecha ao final. Enquanto estiver ativo, ele
-detecta se existe uma pessoa fisicamente em frente ao computador e
-envia uma notificacao para o celular.
+manualmente. Enquanto estiver ativo, ele detecta se existe uma pessoa
+fisicamente em frente ao computador e envia uma notificacao para o
+celular.
+
+## O problema que isto resolve
+
+As vezes eu preciso deixar meu notebook **ligado, aberto e
+desbloqueado** para conseguir acessa-lo remotamente mais tarde (via
+AnyDesk, no meu caso). O problema e obvio: uma maquina destravada e
+sem ninguem por perto fica exposta. Qualquer pessoa que passe pode
+sentar e usar, e eu nao teria como saber.
+
+Este agente resolve exatamente isso: enquanto o notebook esta
+sozinho e desbloqueado, ele fica olhando pela webcam e **me avisa no
+celular se alguem sentar na frente dele**. Nao impede o acesso, nao
+bloqueia nada, so me avisa, para eu poder reagir.
+
+O que ele **nao** e:
+
+* Nao e antifurto nem controle de acesso. Nao trava a maquina, nao
+  bloqueia sessao, nao impede ninguem de usar o computador.
+* Nao e vigilancia de outras pessoas. E para monitorar a **sua
+  propria** maquina desacompanhada. Se outras pessoas usam ou circulam
+  perto desse computador, avise a elas, e verifique as leis locais
+  sobre gravacao e monitoramento antes de usar.
+* Nao identifica **quem** e a pessoa, so que existe **alguem** ali.
 
 O agente nao conhece o AnyDesk nem qualquer outro software de acesso
 remoto. Ele so sabe monitorar enquanto estiver ligado. Quem decide
@@ -27,6 +49,53 @@ quando iniciar e quando parar e o operador.
   resultado (pessoa detectada ou nao, com que confianca) e usado.
 * Encerrar o programa libera a webcam imediatamente.
 
+## Seguranca e privacidade
+
+Leia antes de usar. Sao propriedades do desenho, nao bugs.
+
+### O topico do ntfy funciona como uma senha
+
+No `ntfy.sh` publico **nao existe autenticacao por topico**. Quem
+souber o nome do seu topico consegue:
+
+* **ler todos os seus alertas**, ou seja, saber quando tem alguem na
+  frente do seu computador; e
+* **publicar alertas falsos** no mesmo topico.
+
+Por isso:
+
+* Use um nome longo e aleatorio, tipo `presence_7f3a9c21b8e4`, nunca
+  algo adivinhavel como `presence_joao` ou o nome da sua empresa.
+* Nunca publique o nome do seu topico em print, video, issue ou
+  commit. Ele e um segredo, mesmo parecendo so um nome.
+* Se quiser autenticacao de verdade, hospede seu proprio ntfy com
+  controle de acesso, ou use um canal autenticado como Telegram ou
+  Gotify. O Apprise aceita todos, basta trocar a URL.
+
+### Onde ficam suas credenciais
+
+A URL de notificacao fica em texto puro no `config.yaml`, dentro de
+`%LOCALAPPDATA%\PresenceAgent`, protegida apenas pelas permissoes da
+sua conta de usuario no Windows. Nao e cofre, e um arquivo comum.
+Quem tiver acesso ao seu usuario le esse arquivo. O `config.yaml`
+esta no `.gitignore` justamente para nunca ir parar num commit.
+
+### O modelo de deteccao e verificado
+
+O `scripts/download_model.py` baixa o YOLOX Nano do release oficial e
+so aceita o arquivo se o SHA-256 bater exatamente com o esperado. Se
+nao bater, o arquivo e descartado e nada e instalado. Isso importa
+porque o modelo e carregado e executado pelo ONNX Runtime: um arquivo
+trocado no meio do caminho seria codigo de terceiro rodando na sua
+maquina.
+
+### O que este projeto nao faz
+
+* Nao criptografa o conteudo das notificacoes (o servidor de push ve
+  o texto do alerta).
+* Nao foi auditado por profissionais de seguranca. Veja o aviso no
+  topo deste README.
+
 ## Para quem so vai usar o programa
 
 Se voce recebeu um `PresenceAgentSetup.exe` ou um `PresenceAgent.exe`
@@ -36,9 +105,15 @@ pronto, nao precisa instalar Python nem editar nada a mao:
    ou copie o `PresenceAgent.exe` para onde quiser se for a versao
    sem instalador.
 2. Na primeira vez que abrir, uma janela pequena vai pedir a URL de
-   notificacao. Cole algo como `ntfy://ntfy.sh/um_nome_dificil_de_adivinhar`
-   e clique em Concluir. Instale o app ntfy no celular e inscreva no
-   mesmo topico para receber os alertas.
+   notificacao. Cole algo como `ntfy://ntfy.sh/presence_7f3a9c21b8e4`,
+   trocando por um nome longo e aleatorio **seu**, e clique em
+   Concluir. Instale o app ntfy no celular e inscreva no mesmo topico
+   para receber os alertas.
+
+   > Esse nome de topico funciona como senha: no ntfy.sh publico, quem
+   > souber o nome le seus alertas e pode publicar alertas falsos. Nao
+   > compartilhe e nao use nada adivinhavel. Veja
+   > [Seguranca e privacidade](#seguranca-e-privacidade).
 3. Pronto. O icone fica na bandeja com o menu de iniciar e parar o
    monitoramento. Isso so acontece uma vez, nas proximas aberturas o
    programa ja usa a configuracao salva.
@@ -129,10 +204,19 @@ Rodando assim (sem ser executavel), o `config.yaml` fica na raiz do
 projeto e e lido dali, do jeito tradicional.
 
 O `download_model.py` baixa o YOLOX Nano oficial (Apache 2.0, Megvii
-BaseDetection) direto do release no GitHub. Esse mesmo arquivo foi
-validado durante o desenvolvimento contra imagens reais, retornando
-corretamente pessoa detectada com confianca 0.87 numa foto com duas
-pessoas e nenhuma deteccao numa foto sem gente.
+BaseDetection) direto do release no GitHub, por HTTPS, e confere o
+SHA-256 do arquivo antes de aceita-lo:
+
+```
+sha256  c789161ed43c8269fcd4e67c67eeeb4e80c622da2eb296a20bc6007bd18a0b7d
+tamanho 3659407 bytes
+```
+
+Se o hash nao bater, o arquivo baixado e apagado e o script falha, em
+vez de instalar um modelo desconhecido. Esse mesmo arquivo foi
+validado contra imagens reais, retornando corretamente pessoa
+detectada com confianca 0.87 numa foto com duas pessoas e nenhuma
+deteccao numa foto sem gente.
 
 Para validar a instalacao sem depender da webcam:
 

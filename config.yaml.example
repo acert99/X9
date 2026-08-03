@@ -20,6 +20,12 @@ notification:
   cooldown_seconds: 600
   title: "Presence Agent"
   message: "Presenca detectada no computador"
+  # ATENCAO: a URL abaixo e um segredo. No ntfy.sh publico nao existe
+  # autenticacao: quem souber o nome do topico le todos os seus alertas
+  # e pode publicar alertas falsos. Use um nome longo e aleatorio, nunca
+  # algo adivinhavel, e nunca faca commit deste arquivo preenchido
+  # (config.yaml esta no .gitignore de proposito).
+  #
   # URLs no formato aceito pelo Apprise. Exemplos:
   #   ntfy self hosted ou publico:  ntfy://ntfy.sh/SEU_TOPICO_SECRETO
   #   Telegram:                     tgram://TOKEN_DO_BOT/CHAT_ID

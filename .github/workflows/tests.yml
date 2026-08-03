@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# Num repositorio publico qualquer pessoa pode abrir um pull request, e o
+# workflow roda com o codigo dela. Sem escrita no token, um PR malicioso
+# nao consegue alterar o repositorio nem publicar nada.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

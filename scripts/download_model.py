@@ -13,6 +13,7 @@ Uso:
 
 from __future__ import annotations
 
+import hashlib
 import sys
 import urllib.request
 from pathlib import Path
@@ -23,18 +24,26 @@ MODEL_URL = (
 )
 DEST = Path(__file__).resolve().parent.parent / "models" / "yolox_nano.onnx"
 
-# yolox_nano.onnx fica em torno de 3.5 MB; qualquer coisa bem menor que isso
-# geralmente e uma pagina de erro (404/redirect) salva no lugar do binario.
-MIN_EXPECTED_SIZE = 1_000_000
+# Hash do arquivo oficial publicado no release acima, conferido em
+# downloads independentes. O modelo e carregado e executado pelo ONNX
+# Runtime, entao um arquivo trocado no meio do caminho seria codigo
+# de terceiro rodando na maquina de quem instalou. Se o hash nao bater,
+# o download e descartado em vez de usado.
+EXPECTED_SHA256 = "c789161ed43c8269fcd4e67c67eeeb4e80c622da2eb296a20bc6007bd18a0b7d"
+EXPECTED_SIZE = 3_659_407
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _is_valid_onnx(path: Path) -> bool:
-    if path.stat().st_size < MIN_EXPECTED_SIZE:
-        return False
-    with path.open("rb") as f:
-        header = f.read(4)
-    # arquivo ONNX comeca com bytes de protobuf, nao com "<" (HTML) ou "{" (JSON)
-    return header[:1] not in (b"<", b"{")
+    """Confere se o arquivo em disco e exatamente o modelo esperado."""
+    return path.stat().st_size == EXPECTED_SIZE and _sha256(path) == EXPECTED_SHA256
 
 
 def main() -> None:
@@ -42,10 +51,17 @@ def main() -> None:
 
     if DEST.exists():
         if _is_valid_onnx(DEST):
-            print(f"Modelo ja existe em {DEST}, nada a fazer.")
+            print(f"Modelo ja existe em {DEST} e o hash confere, nada a fazer.")
             return
-        print(f"Modelo existente em {DEST} parece corrompido/incompleto, baixando de novo.")
+        print(
+            f"Modelo existente em {DEST} nao confere com o esperado "
+            "(corrompido, incompleto ou alterado), baixando de novo."
+        )
         DEST.unlink()
+
+    if not MODEL_URL.startswith("https://"):
+        print("MODEL_URL precisa usar https.", file=sys.stderr)
+        sys.exit(1)
 
     print(f"Baixando {MODEL_URL}")
     try:
@@ -57,15 +73,20 @@ def main() -> None:
 
     if not _is_valid_onnx(DEST):
         size = DEST.stat().st_size
+        actual = _sha256(DEST)
         DEST.unlink(missing_ok=True)
         print(
-            f"Download retornou arquivo invalido ({size} bytes) em vez do modelo ONNX.",
+            "O arquivo baixado nao confere com o modelo oficial esperado e foi\n"
+            "descartado. Nada foi instalado.\n"
+            f"  tamanho esperado: {EXPECTED_SIZE} bytes / recebido: {size} bytes\n"
+            f"  sha256 esperado:  {EXPECTED_SHA256}\n"
+            f"  sha256 recebido:  {actual}",
             file=sys.stderr,
         )
         sys.exit(1)
 
     size_mb = DEST.stat().st_size / (1024 * 1024)
-    print(f"Modelo salvo em {DEST} ({size_mb:.1f} MB)")
+    print(f"Modelo salvo em {DEST} ({size_mb:.1f} MB), sha256 conferido.")
 
 
 if __name__ == "__main__":
