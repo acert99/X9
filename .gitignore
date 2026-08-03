@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+models/*.onnx
+presence_agent.log*
+dist/
+dist_installer/
+build/
+config.yaml
+stdout.log
+stderr.log

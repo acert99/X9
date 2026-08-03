@@ -1,0 +1,34 @@
+# Configuracao do Presence Agent
+# Ajuste os valores abaixo antes de rodar o programa.
+
+camera:
+  index: 0
+  width: 640
+  height: 480
+  fps: 3
+  open_retries: 3
+  open_retry_delay_seconds: 2.0
+
+detector:
+  input_size: 416
+  confidence: 0.60
+  nms_threshold: 0.45
+  positive_frames: 5
+  window_seconds: 3
+
+notification:
+  cooldown_seconds: 600
+  title: "Presence Agent"
+  message: "Presenca detectada no computador"
+  # URLs no formato aceito pelo Apprise. Exemplos:
+  #   ntfy self hosted ou publico:  ntfy://ntfy.sh/SEU_TOPICO_SECRETO
+  #   Telegram:                     tgram://TOKEN_DO_BOT/CHAT_ID
+  #   Gotify:                       gotify://SEU_SERVIDOR/TOKEN
+  #   Discord:                      discord://WEBHOOK_ID/WEBHOOK_TOKEN
+  # Pode colocar mais de uma URL para receber em varios canais ao mesmo tempo.
+  urls:
+    - "ntfy://ntfy.sh/TROQUE_ESTE_TOPICO"
+
+logging:
+  level: INFO
+  file: presence_agent.log
