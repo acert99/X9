@@ -1,10 +1,10 @@
 @echo off
-REM Presence Agent - instalador automatico
+REM X9 - instalador automatico
 REM
 REM Clique duas vezes neste arquivo. Ele confere se o Python esta
 REM instalado, prepara tudo, gera o executavel e, se o Inno Setup
 REM tambem estiver instalado, gera o instalador completo
-REM (PresenceAgentSetup.exe) no final.
+REM (X9Setup.exe) no final.
 REM
 REM Precisa rodar so uma vez, na maquina onde voce vai gerar o
 REM programa para distribuir. Quem so vai usar o resultado nao
@@ -14,7 +14,7 @@ cd /d %~dp0
 setlocal
 
 echo ============================================
-echo   Presence Agent - preparando tudo
+echo   X9 - preparando tudo
 echo ============================================
 echo.
 
@@ -62,7 +62,7 @@ if errorlevel 1 (
     echo ============================================
     echo   Pronto ate aqui
     echo ============================================
-    echo O executavel esta em dist\PresenceAgent.exe
+    echo O executavel esta em dist\X9.exe
     echo.
     echo Para gerar tambem um instalador completo, com tela de
     echo instalacao e atalho no menu iniciar, instale o Inno Setup
@@ -81,7 +81,7 @@ echo.
 echo ============================================
 echo   Tudo pronto
 echo ============================================
-echo O instalador final esta em dist_installer\PresenceAgentSetup.exe
+echo O instalador final esta em dist_installer\X9Setup.exe
 echo Esse e o arquivo que voce compartilha com quem so vai usar o
 echo programa.
 pause

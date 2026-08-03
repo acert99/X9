@@ -19,7 +19,7 @@ from typing import Callable, Optional
 import pystray
 from PIL import Image, ImageDraw
 
-logger = logging.getLogger("presence_agent.tray")
+logger = logging.getLogger("x9.tray")
 
 COLOR_IDLE = (120, 120, 120)
 COLOR_MONITORING = (46, 160, 67)
@@ -48,9 +48,9 @@ class TrayInterface:
 
     def run(self) -> None:
         self._icon = pystray.Icon(
-            name="presence_agent",
+            name="x9",
             icon=self._build_icon_image(COLOR_IDLE),
-            title="Presence Agent",
+            title="X9",
             menu=self._build_menu(),
         )
         self._icon.run()

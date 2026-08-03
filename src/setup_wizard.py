@@ -34,37 +34,33 @@ detector:
 
 notification:
   cooldown_seconds: 600
-  title: "Presence Agent"
+  title: "X9"
   message: "Presenca detectada no computador"
   urls:
     - "{notification_url}"
 
 logging:
   level: INFO
-  file: "{log_path}"
 """
 
 PLACEHOLDER_URL = "ntfy://ntfy.sh/"
 
 
-def render_config(notification_url: str, log_path: Path) -> str:
+def render_config(notification_url: str) -> str:
     """Gera o conteudo do config.yaml a partir do template.
 
     Separado da parte grafica de proposito, para poder ser testado
     sem precisar abrir nenhuma janela.
     """
-    return DEFAULT_TEMPLATE.format(
-        notification_url=notification_url,
-        log_path=str(log_path).replace("\\", "/"),
-    )
+    return DEFAULT_TEMPLATE.format(notification_url=notification_url)
 
 
-def run_first_time_setup(config_path: Path, log_path: Path) -> bool:
+def run_first_time_setup(config_path: Path) -> bool:
     """Mostra o assistente grafico. Retorna True se o usuario concluiu."""
     result: dict[str, str | None] = {"url": None}
 
     root = tk.Tk()
-    root.title("Presence Agent - Configuracao inicial")
+    root.title("X9 - Configuracao inicial")
     root.resizable(False, False)
 
     tk.Label(
@@ -90,7 +86,7 @@ def run_first_time_setup(config_path: Path, log_path: Path) -> bool:
         url = entry.get().strip()
         if not url or url == PLACEHOLDER_URL:
             messagebox.showwarning(
-                "Presence Agent", "Preencha uma URL de notificacao valida."
+                "X9", "Preencha uma URL de notificacao valida."
             )
             return
         result["url"] = url
@@ -114,5 +110,5 @@ def run_first_time_setup(config_path: Path, log_path: Path) -> bool:
         return False
 
     config_path.parent.mkdir(parents=True, exist_ok=True)
-    config_path.write_text(render_config(result["url"], log_path), encoding="utf-8")
+    config_path.write_text(render_config(result["url"]), encoding="utf-8")
     return True

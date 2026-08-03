@@ -1,27 +1,27 @@
-; Script do Inno Setup para o Presence Agent.
+; Script do Inno Setup para o X9.
 ; Gera um instalador Windows de verdade: tela de boas vindas, escolha
 ; de pasta, atalho no menu iniciar, atalho opcional na area de
 ; trabalho, entrada no Adicionar ou Remover Programas, e desinstalador.
 ;
 ; Como usar:
-;   1. Rode scripts\build_exe.bat primeiro (gera dist\PresenceAgent.exe)
+;   1. Rode scripts\build_exe.bat primeiro (gera dist\X9.exe)
 ;   2. Instale o Inno Setup (gratuito): https://jrsoftware.org/isdl.php
 ;   3. Rode scripts\build_installer.bat, ou abra este arquivo no
 ;      Inno Setup Compiler e clique em Compile.
 
-#define MyAppName "Presence Agent"
+#define MyAppName "X9"
 #define MyAppVersion "1.0"
-#define MyAppExeName "PresenceAgent.exe"
+#define MyAppExeName "X9.exe"
 
 [Setup]
 AppId={{5906ED8C-4C5D-4B7F-B786-925F65299498}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-DefaultDirName={autopf}\PresenceAgent
+DefaultDirName={autopf}\X9
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..\dist_installer
-OutputBaseFilename=PresenceAgentSetup
+OutputBaseFilename=X9Setup
 Compression=lzma
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -45,4 +45,4 @@ Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: st
 Filename: "{app}\{#MyAppExeName}"; Description: "Abrir o {#MyAppName} agora"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
-Type: filesandordirs; Name: "{localappdata}\PresenceAgent"
+Type: filesandordirs; Name: "{localappdata}\X9"

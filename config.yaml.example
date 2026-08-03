@@ -1,4 +1,4 @@
-# Configuracao do Presence Agent
+# Configuracao do X9
 # Ajuste os valores abaixo antes de rodar o programa.
 
 camera:
@@ -18,7 +18,7 @@ detector:
 
 notification:
   cooldown_seconds: 600
-  title: "Presence Agent"
+  title: "X9"
   message: "Presenca detectada no computador"
   # ATENCAO: a URL abaixo e um segredo. No ntfy.sh publico nao existe
   # autenticacao: quem souber o nome do topico le todos os seus alertas
@@ -37,4 +37,3 @@ notification:
 
 logging:
   level: INFO
-  file: presence_agent.log

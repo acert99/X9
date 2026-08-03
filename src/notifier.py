@@ -19,7 +19,7 @@ from typing import List, Optional
 
 import apprise
 
-logger = logging.getLogger("presence_agent.notifier")
+logger = logging.getLogger("x9.notifier")
 
 
 class NotificationService:
@@ -27,7 +27,7 @@ class NotificationService:
         self,
         urls: List[str],
         cooldown_seconds: int = 600,
-        title: str = "Presence Agent",
+        title: str = "X9",
         message: str = "Presenca detectada no computador",
     ) -> None:
         self._cooldown_seconds = cooldown_seconds

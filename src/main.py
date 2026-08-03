@@ -1,5 +1,5 @@
 """
-PresenceAgent
+X9Agent
 
 Orquestra todos os demais modulos: abre a camera quando o usuario
 manda iniciar pela bandeja, roda o detector a cada frame, aplica o
@@ -34,13 +34,13 @@ from temporal_filter import TemporalFilter
 from tray import TrayInterface
 
 
-def setup_logging(config: Config) -> None:
+def setup_logging(config: Config, log_path: Path) -> None:
     level = getattr(logging, config.logging.level.upper(), logging.INFO)
     handlers = [logging.StreamHandler()]
-    if config.logging.file:
+    if log_path:
         handlers.append(
             logging.handlers.RotatingFileHandler(
-                config.logging.file,
+                log_path,
                 maxBytes=2_000_000,
                 backupCount=3,
                 encoding="utf-8",
@@ -53,10 +53,10 @@ def setup_logging(config: Config) -> None:
     )
 
 
-class PresenceAgent:
+class X9Agent:
     def __init__(self, config: Config, model_path: Path) -> None:
         self._config = config
-        self._logger = logging.getLogger("presence_agent.main")
+        self._logger = logging.getLogger("x9.main")
 
         self._camera = CameraManager(
             index=config.camera.index,
@@ -93,7 +93,7 @@ class PresenceAgent:
         self._alert_count = 0
 
     def run(self) -> None:
-        self._logger.info("Presence Agent iniciado, aguardando comando na bandeja")
+        self._logger.info("X9 iniciado, aguardando comando na bandeja")
         self._tray.run()
 
     def start_monitoring(self) -> None:
@@ -123,7 +123,7 @@ class PresenceAgent:
 
     def shutdown(self) -> None:
         self.stop_monitoring()
-        self._logger.info("Presence Agent encerrado")
+        self._logger.info("X9 encerrado")
 
     def _monitor_loop(self) -> None:
         interval = 1.0 / self._config.camera.fps
@@ -157,12 +157,12 @@ class PresenceAgent:
 def main() -> None:
     data_dir = user_data_dir()
     config_path = data_dir / "config.yaml"
-    log_path = data_dir / "presence_agent.log"
+    log_path = data_dir / "x9.log"
 
     if not config_path.exists():
         from setup_wizard import run_first_time_setup
 
-        completed = run_first_time_setup(config_path, log_path)
+        completed = run_first_time_setup(config_path)
         if not completed:
             return
 
@@ -178,8 +178,8 @@ def main() -> None:
         )
 
     config = Config.load(config_path)
-    setup_logging(config)
-    agent = PresenceAgent(config, model_path)
+    setup_logging(config, log_path)
+    agent = X9Agent(config, model_path)
     agent.run()
 
 

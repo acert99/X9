@@ -1,5 +1,5 @@
 @echo off
-REM Gera o executavel do Presence Agent, pronto para instalar em
+REM Gera o executavel do X9, pronto para instalar em
 REM qualquer computador Windows sem precisar de Python. Pode ser
 REM clicado duas vezes direto no Explorer, ele encontra a pasta do
 REM projeto sozinho.
@@ -42,13 +42,13 @@ if not exist models\yolox_nano.onnx (
 
 echo.
 echo Gerando executavel, isso pode levar alguns minutos...
-pyinstaller --onefile --windowed --name PresenceAgent ^
+pyinstaller --onefile --windowed --name X9 ^
     --add-data "models;models" ^
     --hidden-import pystray._win32 ^
     src\main.py
 
 echo.
-echo Pronto. O executavel esta em dist\PresenceAgent.exe
+echo Pronto. O executavel esta em dist\X9.exe
 echo Ele pede a configuracao (URL de notificacao) numa telinha na
 echo primeira vez que for aberto, nao precisa editar nenhum arquivo
 echo a mao.

@@ -28,7 +28,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='PresenceAgent',
+    name='X9',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

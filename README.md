@@ -1,4 +1,4 @@
-# Presence Agent
+# X9
 
 > **Aviso**: este projeto foi feito por um entusiasta, nao um
 > desenvolvedor profissional, com ajuda de IA. Funciona no meu uso
@@ -11,6 +11,10 @@ Agente local de monitoramento de presenca por webcam, acionado
 manualmente. Enquanto estiver ativo, ele detecta se existe uma pessoa
 fisicamente em frente ao computador e envia uma notificacao para o
 celular.
+
+**Por que "X9"?** No Brasil, *X9* e giria para dedo-duro, quem entrega
+o que viu. E exatamente o trabalho deste programa: se alguem sentar na
+frente do seu computador, ele te entrega a informacao na hora.
 
 ## O problema que isto resolve
 
@@ -64,8 +68,8 @@ souber o nome do seu topico consegue:
 
 Por isso:
 
-* Use um nome longo e aleatorio, tipo `presence_7f3a9c21b8e4`, nunca
-  algo adivinhavel como `presence_joao` ou o nome da sua empresa.
+* Use um nome longo e aleatorio, tipo `x9_7f3a9c21b8e4`, nunca
+  algo adivinhavel como `x9_joao` ou o nome da sua empresa.
 * Nunca publique o nome do seu topico em print, video, issue ou
   commit. Ele e um segredo, mesmo parecendo so um nome.
 * Se quiser autenticacao de verdade, hospede seu proprio ntfy com
@@ -75,7 +79,7 @@ Por isso:
 ### Onde ficam suas credenciais
 
 A URL de notificacao fica em texto puro no `config.yaml`, dentro de
-`%LOCALAPPDATA%\PresenceAgent`, protegida apenas pelas permissoes da
+`%LOCALAPPDATA%\X9`, protegida apenas pelas permissoes da
 sua conta de usuario no Windows. Nao e cofre, e um arquivo comum.
 Quem tiver acesso ao seu usuario le esse arquivo. O `config.yaml`
 esta no `.gitignore` justamente para nunca ir parar num commit.
@@ -98,14 +102,14 @@ maquina.
 
 ## Para quem so vai usar o programa
 
-Se voce recebeu um `PresenceAgentSetup.exe` ou um `PresenceAgent.exe`
+Se voce recebeu um `X9Setup.exe` ou um `X9.exe`
 pronto, nao precisa instalar Python nem editar nada a mao:
 
-1. Rode o instalador (`PresenceAgentSetup.exe`) e siga o assistente,
-   ou copie o `PresenceAgent.exe` para onde quiser se for a versao
+1. Rode o instalador (`X9Setup.exe`) e siga o assistente,
+   ou copie o `X9.exe` para onde quiser se for a versao
    sem instalador.
 2. Na primeira vez que abrir, uma janela pequena vai pedir a URL de
-   notificacao. Cole algo como `ntfy://ntfy.sh/presence_7f3a9c21b8e4`,
+   notificacao. Cole algo como `ntfy://ntfy.sh/x9_7f3a9c21b8e4`,
    trocando por um nome longo e aleatorio **seu**, e clique em
    Concluir. Instale o app ntfy no celular e inscreva no mesmo topico
    para receber os alertas.
@@ -152,7 +156,7 @@ Cada modulo em `src/` faz uma unica coisa e nao conhece os outros:
 | `main.py`             | Orquestrar todos os modulos acima                    |
 
 Em modo executavel, o `config.yaml` e o log ficam numa pasta propria
-do usuario (`%LOCALAPPDATA%\PresenceAgent`), separada de onde o
+do usuario (`%LOCALAPPDATA%\X9`), separada de onde o
 programa foi instalado. Isso evita precisar de permissao de
 administrador so para gravar a configuracao.
 
@@ -175,8 +179,8 @@ direciona para https://www.python.org/downloads/ (lembre de marcar
 nao estiver instalado, o script gera o `.exe` normalmente e avisa que
 falta so esse passo para o instalador completo.
 
-O resultado final fica em `dist_installer\PresenceAgentSetup.exe`
-(ou em `dist\PresenceAgent.exe`, se o Inno Setup ainda nao tiver sido
+O resultado final fica em `dist_installer\X9Setup.exe`
+(ou em `dist\X9.exe`, se o Inno Setup ainda nao tiver sido
 instalado).
 
 ### Caminho passo a passo, se preferir rodar cada etapa manualmente
@@ -233,7 +237,7 @@ scripts\build_exe.bat
 Esse script cria o ambiente virtual se nao existir, instala tudo,
 baixa o modelo se faltar, e roda o PyInstaller com o modelo ja
 embutido dentro do `.exe`. O resultado fica em
-`dist\PresenceAgent.exe`. Diferente da versao anterior deste projeto,
+`dist\X9.exe`. Diferente da versao anterior deste projeto,
 esse executavel nao precisa mais de um `config.yaml` pronto de
 antemao: ele mesmo pergunta a URL de notificacao na primeira
 execucao, atraves do `setup_wizard.py`.
@@ -248,13 +252,13 @@ Depois rode:
 scripts\build_installer.bat
 ```
 
-Isso compila `scripts\PresenceAgent.iss` e gera
-`dist_installer\PresenceAgentSetup.exe`, um instalador com tela de
+Isso compila `scripts\X9.iss` e gera
+`dist_installer\X9Setup.exe`, um instalador com tela de
 boas vindas, escolha de pasta, atalho no menu iniciar, atalho
 opcional na area de trabalho, opcao de iniciar junto com o Windows,
 e desinstalador registrado no Windows.
 
-Esse `PresenceAgentSetup.exe` e o arquivo unico que voce compartilha
+Esse `X9Setup.exe` e o arquivo unico que voce compartilha
 com quem so vai usar o programa. Basta rodar e seguir o assistente.
 
 Nem o build do `.exe` nem o do instalador foram testados numa maquina

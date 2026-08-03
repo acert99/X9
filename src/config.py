@@ -47,14 +47,17 @@ class DetectorConfig:
 class NotificationConfig:
     cooldown_seconds: int = 600
     urls: List[str] = field(default_factory=list)
-    title: str = "Presence Agent"
+    title: str = "X9"
     message: str = "Presenca detectada no computador"
 
 
 @dataclass
 class LoggingConfig:
+    # O caminho do arquivo de log nao fica aqui de proposito: ele e resolvido
+    # em tempo de execucao a partir da pasta de dados do usuario. Persistir
+    # caminho absoluto em config quebra quando a pasta muda (renomeacao do
+    # app, outro usuario, outra maquina).
     level: str = "INFO"
-    file: str = "presence_agent.log"
 
 
 @dataclass

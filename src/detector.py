@@ -25,7 +25,7 @@ import cv2
 import numpy as np
 import onnxruntime as ort
 
-logger = logging.getLogger("presence_agent.detector")
+logger = logging.getLogger("x9.detector")
 
 COCO_PERSON_CLASS_ID = 0
 YOLOX_STRIDES = (8, 16, 32)

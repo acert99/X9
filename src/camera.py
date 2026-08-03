@@ -14,7 +14,7 @@ from typing import Optional
 import cv2
 import numpy as np
 
-logger = logging.getLogger("presence_agent.camera")
+logger = logging.getLogger("x9.camera")
 
 
 class CameraManager:
