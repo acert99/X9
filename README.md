@@ -211,9 +211,24 @@ entao rodam limpos em qualquer runner do Actions.
 
 Este codigo esta sob licenca MIT, veja o arquivo `LICENSE`.
 
-Licencas dos componentes de terceiros usados:
+## Creditos
 
-* YOLOX (Megvii BaseDetection): Apache 2.0
-* OpenCV: Apache 2.0
-* ONNX Runtime: MIT
-* Apprise: BSD 2 clause
+Este projeto so existe por causa do trabalho de terceiros, todo ele
+open source. Credito e agradecimento a cada um:
+
+| Projeto | Uso neste agente | Licenca |
+|---|---|---|
+| [YOLOX](https://github.com/Megvii-BaseDetection/YOLOX) (Megvii BaseDetection) | Modelo de deteccao (YOLOX Nano, ONNX) usado em `detector.py` | Apache 2.0 |
+| [OpenCV](https://opencv.org/) (`opencv-python-headless`) | Captura da webcam e pre-processamento de frames | Apache 2.0 |
+| [ONNX Runtime](https://onnxruntime.ai/) | Motor de inferencia do modelo em `detector.py` | MIT |
+| [Apprise](https://github.com/caronc/apprise) | Camada de notificacao (ntfy, Telegram, Gotify, Discord, email etc.) em `notifier.py` | BSD 2-Clause |
+| [ntfy](https://ntfy.sh/) | Servico/app de push recomendado para receber os alertas no celular | Apache 2.0 |
+| [pystray](https://github.com/moses-palmer/pystray) | Icone e menu na bandeja do Windows em `tray.py` | LGPL-3.0-or-later / GPL-3.0-or-later |
+| [Pillow](https://python-pillow.org/) | Geracao do icone da bandeja | MIT-CMU (licenca estilo Pillow/HPND) |
+| [PyYAML](https://pyyaml.org/) | Leitura do `config.yaml` em `config.py` | MIT |
+| [NumPy](https://numpy.org/) | Manipulacao de arrays de imagem no pre/pos-processamento do detector | BSD 3-Clause |
+| [PyInstaller](https://pyinstaller.org/) | Empacotamento do `.exe` (`scripts/build_exe.bat`) | GPL-2.0-or-later (com excecao de bootloader, nao afeta o codigo aqui gerado) |
+| [Inno Setup](https://jrsoftware.org/isinfo.php) | Geracao do instalador (`scripts/build_installer.bat`) | Freeware (nao redistribui codigo deste projeto) |
+
+Se algum credito estiver faltando ou incorreto, abra uma issue ou PR
+corrigindo.
