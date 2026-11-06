@@ -6,13 +6,16 @@ from PyInstaller.utils.hooks import collect_all
 # pacote em tempo de execucao (nao por import estatico), entao o
 # PyInstaller nao os enxerga sozinho e precisam ser coletados a mao.
 apprise_datas, apprise_binaries, apprise_hiddenimports = collect_all('apprise')
+# pygrabber usa comtypes, que gera wrappers COM em tempo de execucao.
+comtypes_datas, comtypes_binaries, comtypes_hiddenimports = collect_all('comtypes')
 
 a = Analysis(
     ['src\\main.py'],
     pathex=[],
-    binaries=apprise_binaries,
-    datas=[('models', 'models')] + apprise_datas,
-    hiddenimports=['pystray._win32'] + apprise_hiddenimports,
+    binaries=apprise_binaries + comtypes_binaries,
+    datas=[('models', 'models')] + apprise_datas + comtypes_datas,
+    hiddenimports=['pystray._win32', 'pygrabber.dshow_graph']
+    + apprise_hiddenimports + comtypes_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

@@ -8,13 +8,40 @@ Nao sabe nada sobre deteccao, notificacao ou interface.
 from __future__ import annotations
 
 import logging
+import sys
 import time
-from typing import Optional
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
 
 logger = logging.getLogger("x9.camera")
+
+# DirectShow no Windows: cameras virtuais (iVCam, OBS Virtual Camera,
+# DroidCam) costumam ser so DirectShow, e o backend padrao do OpenCV
+# (MSMF) nao as enxerga. Usar o mesmo backend em todo lugar tambem faz
+# o indice bater com a ordem da lista de nomes em list_cameras().
+_BACKEND = cv2.CAP_DSHOW if sys.platform == "win32" else cv2.CAP_ANY
+
+
+def list_cameras(max_probe: int = 5) -> List[Tuple[int, str]]:
+    """Lista as cameras disponiveis como (indice, nome)."""
+    if sys.platform == "win32":
+        try:
+            from pygrabber.dshow_graph import FilterGraph
+
+            return list(enumerate(FilterGraph().get_input_devices()))
+        except Exception:
+            logger.exception("Falha ao listar cameras pelo DirectShow")
+
+    # Sem nomes: testa os indices um a um.
+    found = []
+    for index in range(max_probe):
+        cap = cv2.VideoCapture(index, _BACKEND)
+        if cap.isOpened():
+            found.append((index, f"Camera {index}"))
+        cap.release()
+    return found
 
 
 class CameraManager:
@@ -41,7 +68,7 @@ class CameraManager:
         Retorna True se conseguiu abrir, False caso contrario.
         """
         for attempt in range(1, self._open_retries + 1):
-            cap = cv2.VideoCapture(self._index)
+            cap = cv2.VideoCapture(self._index, _BACKEND)
             if cap.isOpened():
                 cap.set(cv2.CAP_PROP_FRAME_WIDTH, self._width)
                 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self._height)
@@ -62,6 +89,15 @@ class CameraManager:
 
         logger.error("Nao foi possivel abrir a camera %s", self._index)
         return False
+
+    @property
+    def index(self) -> int:
+        return self._index
+
+    def set_index(self, index: int) -> None:
+        """Troca a camera. Vale na proxima vez que open() for chamado."""
+        self.release()
+        self._index = index
 
     def is_opened(self) -> bool:
         return self._cap is not None and self._cap.isOpened()

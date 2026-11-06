@@ -4,4 +4,5 @@ apprise==1.12.0
 PyYAML==6.0.3
 pystray==0.19.5
 Pillow==12.1.1
+pygrabber==0.2
 numpy>=1.26,<3

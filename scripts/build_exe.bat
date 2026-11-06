@@ -42,10 +42,9 @@ if not exist models\yolox_nano.onnx (
 
 echo.
 echo Gerando executavel, isso pode levar alguns minutos...
-pyinstaller --onefile --windowed --name X9 ^
-    --add-data "models;models" ^
-    --hidden-import pystray._win32 ^
-    src\main.py
+REM Usa o X9.spec: ele coleta os plugins do apprise, que o PyInstaller
+REM nao enxerga sozinho (sem eles nenhuma notificacao sai do .exe).
+pyinstaller --noconfirm X9.spec
 
 echo.
 echo Pronto. O executavel esta em dist\X9.exe

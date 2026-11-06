@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Callable, Optional
+from typing import Callable, List, Optional, Tuple
 
 import pystray
 from PIL import Image, ImageDraw
@@ -32,7 +32,14 @@ class TrayInterface:
         on_start: Callable[[], None],
         on_stop: Callable[[], None],
         on_exit: Callable[[], None],
+        list_cameras: Callable[[], List[Tuple[int, str]]] = lambda: [],
+        on_select_camera: Callable[[int], None] = lambda index: None,
+        current_camera: Callable[[], int] = lambda: 0,
     ) -> None:
+        self._list_cameras = list_cameras
+        self._on_select_camera = on_select_camera
+        self._current_camera = current_camera
+        self._cameras: List[Tuple[int, str]] = []
         self._on_start = on_start
         self._on_stop = on_stop
         self._on_exit = on_exit
@@ -47,6 +54,7 @@ class TrayInterface:
         self._lock = threading.Lock()
 
     def run(self) -> None:
+        self._cameras = self._list_cameras()
         self._icon = pystray.Icon(
             name="x9",
             icon=self._build_icon_image(COLOR_IDLE),
@@ -113,6 +121,7 @@ class TrayInterface:
 
         return pystray.Menu(
             toggle_item,
+            pystray.MenuItem("Camera", self._build_camera_menu()),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(f"Camera: {status_camera}", None, enabled=False),
             pystray.MenuItem(f"Detector: {status_detector}", None, enabled=False),
@@ -121,6 +130,28 @@ class TrayInterface:
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Sair", self._handle_exit),
         )
+
+    def _build_camera_menu(self) -> pystray.Menu:
+        def item_for(index: int, name: str) -> pystray.MenuItem:
+            return pystray.MenuItem(
+                name,
+                lambda icon, item: self._on_select_camera(index),
+                checked=lambda item: self._current_camera() == index,
+                radio=True,
+            )
+
+        items = [item_for(i, n) for i, n in self._cameras]
+        if not items:
+            items = [pystray.MenuItem("Nenhuma camera encontrada", None, enabled=False)]
+        items += [
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Procurar cameras de novo", self._handle_rescan),
+        ]
+        return pystray.Menu(*items)
+
+    def _handle_rescan(self, icon, item) -> None:
+        self._cameras = self._list_cameras()
+        self._refresh()
 
     def _handle_start(self, icon, item) -> None:
         self._on_start()
