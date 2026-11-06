@@ -1,353 +1,226 @@
-# X9
+<p align="center">
+  <img src="assets/banner.jpg" alt="X9: someone sat down? You will know. And it is locked." width="100%">
+</p>
 
-> **Aviso**: este projeto foi feito por um entusiasta, nao um
-> desenvolvedor profissional, com ajuda de IA. Funciona no meu uso
-> pessoal, mas nao passou por revisao de seguranca formal nem por
-> desenvolvedores experientes. Use por sua conta e risco, revise o
-> codigo antes de confiar nele para algo sensivel, e sinta-se a
-> vontade para abrir issues ou PRs com correcoes.
+<p align="center">
+  <b>Webcam watchdog for your unattended Windows PC.</b><br>
+  Someone sits down → your phone gets an alert → the PC locks itself.
+</p>
 
-Agente local de monitoramento de presenca por webcam, acionado
-manualmente. Enquanto estiver ativo, ele detecta se existe uma pessoa
-fisicamente em frente ao computador e envia uma notificacao para o
-celular.
+<p align="center">
+  <b>English</b> · <a href="README.pt-BR.md">Português</a>
+</p>
 
-**Por que "X9"?** No Brasil, *X9* e giria para dedo-duro, quem entrega
-o que viu. E exatamente o trabalho deste programa: se alguem sentar na
-frente do seu computador, ele te entrega a informacao na hora.
+<p align="center">
+  <a href="https://github.com/acert99/X9/actions/workflows/tests.yml"><img src="https://github.com/acert99/X9/actions/workflows/tests.yml/badge.svg" alt="tests"></a>
+  <img src="https://img.shields.io/badge/platform-Windows-0078D6" alt="Windows">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
+</p>
 
-## O problema que isto resolve
+> **Heads-up:** built by an enthusiast, not a professional developer,
+> with AI assistance. It works for my personal use, but it has not had
+> a formal security review. Read the code before trusting it with
+> anything sensitive. Issues and PRs are welcome.
 
-As vezes eu preciso deixar meu notebook **ligado, aberto e
-desbloqueado** para conseguir acessa-lo remotamente mais tarde (via
-AnyDesk, no meu caso). O problema e obvio: uma maquina destravada e
-sem ninguem por perto fica exposta. Qualquer pessoa que passe pode
-sentar e usar, e eu nao teria como saber.
+**Why "X9"?** In Brazilian slang, *X9* is a snitch: someone who tells
+what they saw. That is this program's whole job.
 
-Este agente resolve exatamente isso: enquanto o notebook esta
-sozinho e desbloqueado, ele fica olhando pela webcam e **me avisa no
-celular se alguem sentar na frente dele** e **bloqueia o Windows na
-hora** (mesmo efeito de Win+L), entao so entra quem souber a senha.
-Depois de bloquear, o monitoramento para sozinho; para vigiar de novo,
-inicie pela bandeja. O bloqueio pode ser desligado em `config.yaml`
-(`security.lock_on_detection: false`), e ai o X9 so avisa.
+## The problem
 
-O que ele **nao** e:
+Sometimes I leave my laptop **on, open and unlocked** so I can reach it
+later through remote access (AnyDesk, in my case). An unlocked machine
+with nobody around is exposed: anyone walking by can sit down and use
+it, and I would never know.
 
-* Nao e antifurto. O bloqueio de sessao depende da senha do Windows:
-  se sua conta nao tem senha, o bloqueio nao protege nada.
-* Nao e vigilancia de outras pessoas. E para monitorar a **sua
-  propria** maquina desacompanhada. Se outras pessoas usam ou circulam
-  perto desse computador, avise a elas, e verifique as leis locais
-  sobre gravacao e monitoramento antes de usar.
-* Nao identifica **quem** e a pessoa, so que existe **alguem** ali.
+X9 watches the webcam while the machine is alone. When a person shows
+up in front of it, X9:
 
-O agente nao conhece o AnyDesk nem qualquer outro software de acesso
-remoto. Ele so sabe monitorar enquanto estiver ligado. Quem decide
-quando iniciar e quando parar e o operador.
+1. **sends an alert to your phone** (ntfy, Telegram, Discord, Gotify,
+   email… anything [Apprise](https://github.com/caronc/apprise) supports);
+2. **locks Windows**, the same as pressing Win+L, so only someone with
+   your password gets in.
 
-## Aviso importante
+You can still reach the lock screen remotely and unlock it yourself.
 
-* A webcam so e aberta quando o operador clica em "Iniciar
-  monitoramento" na bandeja. Nao existe nenhum modo automatico ou
-  oculto de acionamento.
-* Nenhuma imagem ou video e salvo em disco. Cada frame e processado
-  pelo detector em memoria e descartado logo em seguida. So o
-  resultado (pessoa detectada ou nao, com que confianca) e usado.
-* Encerrar o programa libera a webcam imediatamente.
+## Features
 
-## Seguranca e privacidade
+- 🧍 **Person detection** with YOLOX Nano, running 100% locally. No
+  cloud, no images saved to disk.
+- 🔒 **Auto-lock** (Win+L) on detection. Can be turned off.
+- 📱 **Phone alerts** through Apprise, with a cooldown so you are not
+  spammed.
+- 📷 **Camera picker** in the tray menu. Works with virtual cameras
+  such as **iVCam**, DroidCam and OBS Virtual Camera, so a phone can be
+  the webcam on a desktop PC.
+- 🖱️ **Manual only:** the camera turns on only when you click *Start
+  monitoring* in the tray.
+- 📦 **Windows installer** with Start Menu shortcut, optional autostart
+  and uninstaller.
 
-Leia antes de usar. Sao propriedades do desenho, nao bugs.
+## Quick start (users)
 
-### O topico do ntfy funciona como uma senha
+1. Download and run **`X9Setup.exe`**.
+2. On first launch, a small window asks for your notification URL.
+   For ntfy: `ntfy://ntfy.sh/x9_<long_random_name>`. Install the ntfy
+   app on your phone and subscribe to the same topic.
+3. Right-click the tray icon → **Camera** → pick your camera.
+4. Right-click the tray icon → **Start monitoring**. Then walk away.
 
-No `ntfy.sh` publico **nao existe autenticacao por topico**. Quem
-souber o nome do seu topico consegue:
+> ⚠️ **Your ntfy topic name is a password.** On public `ntfy.sh` there is
+> no per-topic authentication: anyone who knows the name can read your
+> alerts and send fake ones. Use a long random name and never share it.
+> See [Security & privacy](#security--privacy).
 
-* **ler todos os seus alertas**, ou seja, saber quando tem alguem na
-  frente do seu computador; e
-* **publicar alertas falsos** no mesmo topico.
+> ⚠️ **The lock only protects you if your Windows account has a
+> password or PIN.**
 
-Por isso:
-
-* Use um nome longo e aleatorio, tipo `x9_7f3a9c21b8e4`, nunca
-  algo adivinhavel como `x9_joao` ou o nome da sua empresa.
-* Nunca publique o nome do seu topico em print, video, issue ou
-  commit. Ele e um segredo, mesmo parecendo so um nome.
-* Se quiser autenticacao de verdade, hospede seu proprio ntfy com
-  controle de acesso, ou use um canal autenticado como Telegram ou
-  Gotify. O Apprise aceita todos, basta trocar a URL.
-
-### Onde ficam suas credenciais
-
-A URL de notificacao fica em texto puro no `config.yaml`, dentro de
-`%LOCALAPPDATA%\X9`, protegida apenas pelas permissoes da
-sua conta de usuario no Windows. Nao e cofre, e um arquivo comum.
-Quem tiver acesso ao seu usuario le esse arquivo. O `config.yaml`
-esta no `.gitignore` justamente para nunca ir parar num commit.
-
-### O modelo de deteccao e verificado
-
-O `scripts/download_model.py` baixa o YOLOX Nano do release oficial e
-so aceita o arquivo se o SHA-256 bater exatamente com o esperado. Se
-nao bater, o arquivo e descartado e nada e instalado. Isso importa
-porque o modelo e carregado e executado pelo ONNX Runtime: um arquivo
-trocado no meio do caminho seria codigo de terceiro rodando na sua
-maquina.
-
-### O que este projeto nao faz
-
-* Nao criptografa o conteudo das notificacoes (o servidor de push ve
-  o texto do alerta).
-* Nao foi auditado por profissionais de seguranca. Veja o aviso no
-  topo deste README.
-
-## Para quem so vai usar o programa
-
-Se voce recebeu um `X9Setup.exe` ou um `X9.exe`
-pronto, nao precisa instalar Python nem editar nada a mao:
-
-1. Rode o instalador (`X9Setup.exe`) e siga o assistente,
-   ou copie o `X9.exe` para onde quiser se for a versao
-   sem instalador.
-2. Na primeira vez que abrir, uma janela pequena vai pedir a URL de
-   notificacao. Cole algo como `ntfy://ntfy.sh/x9_7f3a9c21b8e4`,
-   trocando por um nome longo e aleatorio **seu**, e clique em
-   Concluir. Instale o app ntfy no celular e inscreva no mesmo topico
-   para receber os alertas.
-
-   > Esse nome de topico funciona como senha: no ntfy.sh publico, quem
-   > souber o nome le seus alertas e pode publicar alertas falsos. Nao
-   > compartilhe e nao use nada adivinhavel. Veja
-   > [Seguranca e privacidade](#seguranca-e-privacidade).
-3. Pronto. O icone fica na bandeja com o menu de iniciar e parar o
-   monitoramento. Isso so acontece uma vez, nas proximas aberturas o
-   programa ja usa a configuracao salva.
-
-Nada disso precisa de internet depois de instalado, exceto para
-enviar as proprias notificacoes.
-
-## Como funciona por dentro
+## How it behaves
 
 ```
-Usuario inicia pela bandeja
-        |
-Webcam e aberta
-        |
-Detector roda a cada frame (YOLOX Nano)
-        |
-Pessoa confirmada por alguns segundos seguidos?
-        |
-     sim -> notificacao no celular -> cooldown
-        |
-Ninguem detectado por absence_seconds?
-        |
-     sim -> cooldown liberado (proxima chegada alerta na hora)
-        |
-Continua monitorando ate o usuario parar
+Start monitoring (tray)
+   └─ camera opens
+       └─ YOLOX checks each frame
+           └─ person seen for a few seconds in a row?
+               ├─ yes → phone alert + lock Windows + stop monitoring
+               └─ no  → keep watching
 ```
 
-### Quando voce recebe alerta, e quando nao recebe
+After locking, **monitoring stops by itself**. Otherwise you, the owner,
+would be detected and locked out again seconds after typing your
+password. Click *Start monitoring* again when you leave.
 
-Duas regras trabalham juntas:
+With the lock turned **off**, X9 only sends alerts:
 
-* **Cooldown** (`cooldown_seconds`, padrao 600): depois de um alerta, novos
-  alertas ficam bloqueados por 10 minutos. Serve para nao encher seu
-  celular de notificacao enquanto a mesma pessoa continua sentada ali.
-* **Liberacao por ausencia** (`absence_seconds`, padrao 60): se ninguem for
-  detectado por 60 segundos seguidos, o cooldown e liberado na hora. Assim
-  uma **chegada nova** volta a alertar mesmo que a anterior tenha sido ha
-  poucos minutos.
-
-Na pratica:
-
-| Situacao | Alerta? |
+| Situation | Alert? |
 |---|---|
-| Alguem senta pela primeira vez | Sim |
-| A mesma pessoa continua sentada | Nao (cooldown) |
-| A pessoa sai por mais de 60s e alguem senta de novo | **Sim** |
-| A pessoa so sai do enquadramento por alguns segundos e volta | Nao (evita alerta repetido por nada) |
+| Someone sits down for the first time | Yes |
+| The same person stays seated | No (cooldown, 10 min) |
+| Nobody seen for 60 s, then someone arrives | **Yes** |
+| Person steps out of frame for a few seconds | No |
 
-Se quiser saber de toda e qualquer chegada, mesmo em intervalos curtos,
-diminua o `absence_seconds`. Se estiver recebendo alerta demais, aumente.
+## Settings
 
-Cada modulo em `src/` faz uma unica coisa e nao conhece os outros:
+Stored in `%LOCALAPPDATA%\X9\config.yaml`. Full example:
+[`config.yaml.example`](config.yaml.example).
 
-| Modulo               | Responsabilidade                                    |
-|-----------------------|------------------------------------------------------|
-| `camera.py`           | Abrir, ler e liberar a webcam                        |
-| `detector.py`         | Rodar o YOLOX Nano e dizer se tem pessoa no frame     |
-| `temporal_filter.py`  | Confirmar presenca so apos varios frames positivos    |
-| `notifier.py`         | Enviar notificacao via Apprise com cooldown           |
-| `tray.py`             | Icone e menu na bandeja do Windows                   |
-| `config.py`           | Carregar e validar o config.yaml                     |
-| `paths.py`            | Resolver caminhos em modo script e em modo executavel |
-| `setup_wizard.py`     | Janela de configuracao inicial (so aparece uma vez)   |
-| `main.py`             | Orquestrar todos os modulos acima                    |
+| Key | Default | What it does |
+|---|---|---|
+| `security.lock_on_detection` | `true` | Lock Windows on detection, then stop monitoring |
+| `camera.index` | `0` | Camera to use (easier: pick it in the tray menu) |
+| `detector.confidence` | `0.60` | Minimum score to count as a person |
+| `detector.positive_frames` | `5` | Positive frames needed inside `window_seconds` |
+| `detector.absence_seconds` | `60` | Time with nobody around before the next arrival alerts again |
+| `notification.cooldown_seconds` | `600` | Minimum gap between alerts |
+| `notification.urls` | — | One or more [Apprise URLs](https://github.com/caronc/apprise/wiki) |
 
-Em modo executavel, o `config.yaml` e o log ficam numa pasta propria
-do usuario (`%LOCALAPPDATA%\X9`), separada de onde o
-programa foi instalado. Isso evita precisar de permissao de
-administrador so para gravar a configuracao.
+## Security & privacy
 
-## Para quem vai gerar o executavel ou o instalador
+**These are design properties, not bugs.**
 
-Essa parte e feita uma vez, numa maquina Windows com Python
-instalado, para produzir o `.exe` (ou o instalador completo) que
-depois vai ser distribuido para quem so vai usar o programa.
+- **No images are stored.** Each frame is analyzed in memory and
+  thrown away. Only "person yes/no" is used.
+- **The ntfy topic is a secret.** See the warning above. For real
+  authentication, self-host ntfy with access control or use Telegram or
+  Gotify.
+- **Credentials are plain text.** `config.yaml` is protected only by
+  your Windows user account permissions. It is in `.gitignore` so it
+  never lands in a commit.
+- **The model is verified.** `scripts/download_model.py` only accepts
+  the official YOLOX Nano file if its SHA-256 matches
+  (`c789161e…bd18a0b7d`). Otherwise it deletes the file and fails.
+- **Not encrypted end-to-end.** The push server sees the alert text.
+- **Not anti-theft and not surveillance.** X9 does not know *who* is
+  there. It is meant for **your own** machine. If other people use or
+  pass by this computer, tell them, and check local laws on recording
+  and monitoring.
 
-### Caminho mais simples: um clique so
+## Building from source (developers)
 
-Na raiz do projeto tem o arquivo `INSTALAR.bat`. Clique duas vezes
-nele. Ele confere se o Python esta instalado, prepara o ambiente,
-baixa o modelo, gera o executavel e, se o Inno Setup ja estiver
-instalado, gera tambem o instalador completo, tudo numa tacada so.
+Requires Windows and Python 3.12.
 
-Se o Python ainda nao estiver instalado, o script avisa e te
-direciona para https://www.python.org/downloads/ (lembre de marcar
-"Add python.exe to PATH" durante a instalacao). Se o Inno Setup ainda
-nao estiver instalado, o script gera o `.exe` normalmente e avisa que
-falta so esse passo para o instalador completo.
+**One click:** double-click `INSTALAR.bat`. It creates the venv,
+downloads the model, builds `dist\X9.exe` and, if
+[Inno Setup](https://jrsoftware.org/isdl.php) is installed, builds
+`dist_installer\X9Setup.exe`.
 
-O resultado final fica em `dist_installer\X9Setup.exe`
-(ou em `dist\X9.exe`, se o Inno Setup ainda nao tiver sido
-instalado).
-
-### Caminho passo a passo, se preferir rodar cada etapa manualmente
-
-#### 1. Instalar dependencias e rodar direto do codigo (opcional, para testar)
-
-Requer Python 3.12 no Windows.
+**Step by step:**
 
 ```powershell
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
 python scripts\download_model.py
-copy config.yaml.example config.yaml
+
+copy config.yaml.example config.yaml   # then add your notification URL
+python src\main.py                      # run from source
+
+scripts\build_exe.bat                   # dist\X9.exe (uses X9.spec)
+scripts\build_installer.bat             # dist_installer\X9Setup.exe
 ```
 
-Edite o `config.yaml` recem criado com a URL de notificacao real, e
-rode:
+Check detection without a webcam:
 
 ```powershell
-python src\main.py
+python scripts\check_detection.py path\to\photo.jpg
 ```
 
-Rodando assim (sem ser executavel), o `config.yaml` fica na raiz do
-projeto e e lido dali, do jeito tradicional.
-
-O `download_model.py` baixa o YOLOX Nano oficial (Apache 2.0, Megvii
-BaseDetection) direto do release no GitHub, por HTTPS, e confere o
-SHA-256 do arquivo antes de aceita-lo:
-
-```
-sha256  c789161ed43c8269fcd4e67c67eeeb4e80c622da2eb296a20bc6007bd18a0b7d
-tamanho 3659407 bytes
-```
-
-Se o hash nao bater, o arquivo baixado e apagado e o script falha, em
-vez de instalar um modelo desconhecido. Esse mesmo arquivo foi
-validado contra imagens reais, retornando corretamente pessoa
-detectada com confianca 0.87 numa foto com duas pessoas e nenhuma
-deteccao numa foto sem gente.
-
-Para validar a instalacao sem depender da webcam:
-
-```powershell
-python scripts\check_detection.py caminho\para\foto.jpg
-```
-
-### 2. Gerar o executavel
-
-```powershell
-scripts\build_exe.bat
-```
-
-Esse script cria o ambiente virtual se nao existir, instala tudo,
-baixa o modelo se faltar, e roda o PyInstaller com o modelo ja
-embutido dentro do `.exe`. O resultado fica em
-`dist\X9.exe`. Diferente da versao anterior deste projeto,
-esse executavel nao precisa mais de um `config.yaml` pronto de
-antemao: ele mesmo pergunta a URL de notificacao na primeira
-execucao, atraves do `setup_wizard.py`.
-
-### 3. Gerar o instalador de verdade (recomendado para distribuir)
-
-Instale o Inno Setup (gratuito): https://jrsoftware.org/isdl.php
-
-Depois rode:
-
-```powershell
-scripts\build_installer.bat
-```
-
-Isso compila `scripts\X9.iss` e gera
-`dist_installer\X9Setup.exe`, um instalador com tela de
-boas vindas, escolha de pasta, atalho no menu iniciar, atalho
-opcional na area de trabalho, opcao de iniciar junto com o Windows,
-e desinstalador registrado no Windows.
-
-Esse `X9Setup.exe` e o arquivo unico que voce compartilha
-com quem so vai usar o programa. Basta rodar e seguir o assistente.
-
-Nem o build do `.exe` nem o do instalador foram testados numa maquina
-Windows real durante o desenvolvimento deste projeto, ja que ele foi
-feito em ambiente Linux. A sintaxe de ambos os scripts segue as
-praticas padrao do PyInstaller e do Inno Setup. Se o executavel
-reclamar de algum modulo faltando ao abrir, o mais comum e precisar
-adicionar mais uma flag `--hidden-import` em `build_exe.bat` para o
-modulo citado no erro.
-
-## Testes automatizados
+**Tests** (no webcam, network or GUI needed, and they never lock your
+PC):
 
 ```powershell
 pip install pytest
 pytest tests/ -v
 ```
 
-Os testes cobrem o filtro temporal, a validacao do config.yaml, a
-geracao do config pelo assistente inicial, e a resolucao de caminhos
-em modo script e em modo executavel simulado. Nao dependem de webcam,
-rede, nem de uma janela grafica sendo exibida de verdade.
+GitHub Actions runs them on every push and PR to `main`.
+
+### Code map
+
+Each module in `src/` does one thing and does not know about the others.
+
+| Module | Job |
+|---|---|
+| `camera.py` | List, open, read and release cameras (DirectShow on Windows) |
+| `detector.py` | Run YOLOX Nano and say if there is a person in the frame |
+| `temporal_filter.py` | Confirm presence only after several positive frames |
+| `notifier.py` | Send alerts through Apprise with cooldown |
+| `locker.py` | Lock the Windows session (`LockWorkStation`) |
+| `tray.py` | Tray icon and menu, including the camera picker |
+| `config.py` | Load, validate and save `config.yaml` |
+| `paths.py` | Resolve paths in script and executable mode |
+| `setup_wizard.py` | First-run setup window |
+| `main.py` | Wire everything together |
 
 ## Roadmap
 
-* MVP (este projeto): webcam, deteccao, notificacao, cooldown, bandeja, instalador
-* v1.1: screenshot opcional no alerta, logs estruturados (ja parcialmente coberto pelo RotatingFileHandler em `main.py`)
-* v1.2: multiplas webcams, multiplos canais simultaneos, estatisticas
-* v2: reconhecimento de pessoas autorizadas, modelos intercambiaveis, plugins
+- [x] Detection, alerts, cooldown, tray, installer
+- [x] Auto-lock on detection
+- [x] Camera picker (virtual cameras included)
+- [ ] Optional snapshot attached to the alert
+- [ ] Recognize authorized people
+- [ ] Swappable models and plugins
 
-## Integracao continua
+## Credits
 
-Cada push ou pull request na branch `main` roda automaticamente a
-suite de testes via GitHub Actions (`.github/workflows/tests.yml`).
-Os testes nao dependem de webcam, modelo baixado ou ambiente grafico,
-entao rodam limpos em qualquer runner do Actions.
+X9 exists thanks to these open source projects:
 
-## Licenca
-
-Este codigo esta sob licenca MIT, veja o arquivo `LICENSE`.
-
-## Creditos
-
-Este projeto so existe por causa do trabalho de terceiros, todo ele
-open source. Credito e agradecimento a cada um:
-
-| Projeto | Uso neste agente | Licenca |
+| Project | Used for | License |
 |---|---|---|
-| [YOLOX](https://github.com/Megvii-BaseDetection/YOLOX) (Megvii BaseDetection) | Modelo de deteccao (YOLOX Nano, ONNX) usado em `detector.py` | Apache 2.0 |
-| [OpenCV](https://opencv.org/) (`opencv-python-headless`) | Captura da webcam e pre-processamento de frames | Apache 2.0 |
-| [ONNX Runtime](https://onnxruntime.ai/) | Motor de inferencia do modelo em `detector.py` | MIT |
-| [Apprise](https://github.com/caronc/apprise) | Camada de notificacao (ntfy, Telegram, Gotify, Discord, email etc.) em `notifier.py` | BSD 2-Clause |
-| [ntfy](https://ntfy.sh/) | Servico/app de push recomendado para receber os alertas no celular | Apache 2.0 |
-| [pystray](https://github.com/moses-palmer/pystray) | Icone e menu na bandeja do Windows em `tray.py` | LGPL-3.0-or-later / GPL-3.0-or-later |
-| [Pillow](https://python-pillow.org/) | Geracao do icone da bandeja | MIT-CMU (licenca estilo Pillow/HPND) |
-| [PyYAML](https://pyyaml.org/) | Leitura do `config.yaml` em `config.py` | MIT |
-| [NumPy](https://numpy.org/) | Manipulacao de arrays de imagem no pre/pos-processamento do detector | BSD 3-Clause |
-| [PyInstaller](https://pyinstaller.org/) | Empacotamento do `.exe` (`scripts/build_exe.bat`) | GPL-2.0-or-later (com excecao de bootloader, nao afeta o codigo aqui gerado) |
-| [Inno Setup](https://jrsoftware.org/isinfo.php) | Geracao do instalador (`scripts/build_installer.bat`) | Freeware (nao redistribui codigo deste projeto) |
+| [YOLOX](https://github.com/Megvii-BaseDetection/YOLOX) (Megvii) | Detection model (YOLOX Nano, ONNX) | Apache 2.0 |
+| [OpenCV](https://opencv.org/) | Camera capture and frame processing | Apache 2.0 |
+| [ONNX Runtime](https://onnxruntime.ai/) | Model inference | MIT |
+| [Apprise](https://github.com/caronc/apprise) | Notifications | BSD 2-Clause |
+| [ntfy](https://ntfy.sh/) | Recommended push app | Apache 2.0 |
+| [pystray](https://github.com/moses-palmer/pystray) | Tray icon and menu | LGPL-3.0+ / GPL-3.0+ |
+| [pygrabber](https://github.com/andreaschiavinato/python_grabber) + [comtypes](https://github.com/enthought/comtypes) | Camera names via DirectShow | MIT |
+| [Pillow](https://python-pillow.org/) | Tray icon drawing | MIT-CMU |
+| [PyYAML](https://pyyaml.org/) | Config file | MIT |
+| [NumPy](https://numpy.org/) | Image arrays | BSD 3-Clause |
+| [PyInstaller](https://pyinstaller.org/) | `.exe` packaging | GPL-2.0+ with bootloader exception |
+| [Inno Setup](https://jrsoftware.org/isinfo.php) | Installer | Inno Setup license (free) |
 
-Se algum credito estiver faltando ou incorreto, abra uma issue ou PR
-corrigindo.
+Missing or wrong credit? Open an issue or PR.
+
+## License
+
+MIT. See [`LICENSE`](LICENSE).
