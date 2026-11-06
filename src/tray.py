@@ -19,6 +19,8 @@ from typing import Callable, List, Optional, Tuple
 import pystray
 from PIL import Image, ImageDraw
 
+from paths import resource_path
+
 logger = logging.getLogger("x9.tray")
 
 COLOR_IDLE = (120, 120, 120)
@@ -50,6 +52,7 @@ class TrayInterface:
         self._last_presence: Optional[str] = None
         self._alert_count = 0
 
+        self._base_icon = self._load_base_icon()
         self._icon: Optional[pystray.Icon] = None
         self._lock = threading.Lock()
 
@@ -97,12 +100,37 @@ class TrayInterface:
         self._icon.menu = self._build_menu()
         self._icon.update_menu()
 
+    @staticmethod
+    def _load_base_icon() -> Optional[Image.Image]:
+        try:
+            return Image.open(resource_path("assets/icon.png")).convert("RGBA").resize(
+                (64, 64), Image.LANCZOS
+            )
+        except (OSError, ValueError):
+            logger.warning("assets/icon.png nao encontrado, usando icone simples")
+            return None
+
     def _build_icon_image(self, color: tuple[int, int, int]) -> Image.Image:
         size = 64
-        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        if self._base_icon is None:
+            img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            margin = 6
+            draw.ellipse([margin, margin, size - margin, size - margin], fill=color)
+            return img
+
+        # Detetive com uma bolinha de status no canto: verde vigiando,
+        # cinza parado. Borda escura para a bolinha aparecer em qualquer
+        # cor de barra de tarefas.
+        img = self._base_icon.copy()
         draw = ImageDraw.Draw(img)
-        margin = 6
-        draw.ellipse([margin, margin, size - margin, size - margin], fill=color)
+        dot = 26
+        draw.ellipse(
+            [size - dot - 1, size - dot - 1, size - 1, size - 1],
+            fill=color,
+            outline=(20, 20, 20),
+            width=4,
+        )
         return img
 
     def _build_menu(self) -> pystray.Menu:

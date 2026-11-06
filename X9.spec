@@ -13,7 +13,7 @@ a = Analysis(
     ['src\\main.py'],
     pathex=[],
     binaries=apprise_binaries + comtypes_binaries,
-    datas=[('models', 'models')] + apprise_datas + comtypes_datas,
+    datas=[('models', 'models'), ('assets/icon.png', 'assets')] + apprise_datas + comtypes_datas,
     hiddenimports=['pystray._win32', 'pygrabber.dshow_graph']
     + apprise_hiddenimports + comtypes_hiddenimports,
     hookspath=[],
@@ -32,6 +32,7 @@ exe = EXE(
     a.datas,
     [],
     name='X9',
+    icon='assets\\icon.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
