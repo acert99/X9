@@ -40,6 +40,11 @@ notification:
   urls:
     - "{notification_url}"
 
+security:
+  # Bloqueia o Windows (igual Win+L) ao detectar alguem e para o
+  # monitoramento. Para vigiar de novo, inicie pela bandeja.
+  lock_on_detection: true
+
 logging:
   level: INFO
 """

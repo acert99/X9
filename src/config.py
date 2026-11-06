@@ -13,6 +13,8 @@ from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Any, Dict, List, Type, TypeVar
 
+import re
+
 import yaml
 
 T = TypeVar("T")
@@ -58,6 +60,15 @@ class NotificationConfig:
 
 
 @dataclass
+class SecurityConfig:
+    # Bloqueia o Windows (mesmo efeito de Win+L) quando a presenca e
+    # confirmada. Depois de bloquear, o monitoramento para sozinho: senao
+    # o dono, ao desbloquear com a senha, seria detectado e bloqueado de
+    # novo em poucos segundos. Para voltar a vigiar, inicie pela bandeja.
+    lock_on_detection: bool = True
+
+
+@dataclass
 class LoggingConfig:
     # O caminho do arquivo de log nao fica aqui de proposito: ele e resolvido
     # em tempo de execucao a partir da pasta de dados do usuario. Persistir
@@ -71,6 +82,7 @@ class Config:
     camera: CameraConfig = field(default_factory=CameraConfig)
     detector: DetectorConfig = field(default_factory=DetectorConfig)
     notification: NotificationConfig = field(default_factory=NotificationConfig)
+    security: SecurityConfig = field(default_factory=SecurityConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
 
     @classmethod
@@ -90,12 +102,14 @@ class Config:
         notification = NotificationConfig(
             **_known_fields(NotificationConfig, raw.get("notification", {}))
         )
+        security = SecurityConfig(**_known_fields(SecurityConfig, raw.get("security") or {}))
         logging_cfg = LoggingConfig(**_known_fields(LoggingConfig, raw.get("logging", {})))
 
         config = cls(
             camera=camera,
             detector=detector,
             notification=notification,
+            security=security,
             logging=logging_cfg,
         )
         config._validate()
@@ -114,3 +128,25 @@ class Config:
             raise ValueError("detector.absence_seconds deve ser maior que zero")
         if self.camera.fps <= 0:
             raise ValueError("camera.fps deve ser maior que zero")
+
+
+def save_camera_index(path: str | Path, index: int) -> None:
+    """Grava camera.index no config.yaml sem apagar os comentarios.
+
+    Edita so a linha "index:" dentro do bloco camera; reescrever o YAML
+    inteiro com yaml.dump perderia os comentarios do usuario.
+    """
+    path = Path(path)
+    lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+    in_camera = False
+    for i, line in enumerate(lines):
+        if re.match(r"^\S", line):
+            in_camera = line.startswith("camera:")
+            continue
+        if in_camera and re.match(r"^\s+index\s*:", line):
+            indent = line[: len(line) - len(line.lstrip())]
+            lines[i] = f"{indent}index: {index}\n"
+            break
+    else:
+        raise ValueError(f"camera.index nao encontrado em {path}")
+    path.write_text("".join(lines), encoding="utf-8")

@@ -17,6 +17,7 @@ from config import (  # noqa: E402
     Config,
     DetectorConfig,
     NotificationConfig,
+    SecurityConfig,
 )
 from main import X9Agent  # noqa: E402
 from notifier import NotificationService  # noqa: E402
@@ -46,7 +47,7 @@ class _TrayFalsa:
         pass
 
 
-def _montar_agente(absence_seconds, fps):
+def _montar_agente(absence_seconds, fps, bloquear=False):
     config = Config(
         camera=CameraConfig(fps=fps),
         detector=DetectorConfig(
@@ -57,6 +58,7 @@ def _montar_agente(absence_seconds, fps):
         notification=NotificationConfig(
             cooldown_seconds=600, urls=["ntfy://ntfy.sh/teste"]
         ),
+        security=SecurityConfig(lock_on_detection=bloquear),
     )
 
     agente = object.__new__(X9Agent)
@@ -78,6 +80,9 @@ def _montar_agente(absence_seconds, fps):
     import logging
 
     agente._logger = logging.getLogger("teste")
+    # Nunca usar o bloqueio real aqui: travaria o PC de quem roda os testes.
+    agente.bloqueios = []
+    agente._lock_screen = lambda: agente.bloqueios.append(1) or True
     agente._stop_event = threading.Event()
     agente._alert_count = 0
     agente._last_detection_at = None
@@ -111,3 +116,23 @@ def test_loop_nao_repete_alerta_com_pessoa_parada():
     total = _rodar(agente, enviados, [(3.0, True)])
 
     assert total == 1, f"esperado 1 alerta, veio {total}"
+
+
+def test_loop_bloqueia_pc_e_para_ao_detectar():
+    agente, enviados = _montar_agente(absence_seconds=1.0, fps=50, bloquear=True)
+    thread = threading.Thread(target=agente._monitor_loop, daemon=True)
+    agente._detector.tem_pessoa = True
+    thread.start()
+    thread.join(timeout=3)
+
+    assert not thread.is_alive(), "loop deveria parar sozinho depois de bloquear"
+    assert len(agente.bloqueios) == 1
+    assert len(enviados) == 1
+
+
+def test_loop_sem_bloqueio_continua_vigiando():
+    agente, enviados = _montar_agente(absence_seconds=1.0, fps=50, bloquear=False)
+    _rodar(agente, enviados, [(1.0, True)])
+
+    assert agente.bloqueios == []
+    assert len(enviados) == 1

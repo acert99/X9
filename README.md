@@ -26,13 +26,16 @@ sentar e usar, e eu nao teria como saber.
 
 Este agente resolve exatamente isso: enquanto o notebook esta
 sozinho e desbloqueado, ele fica olhando pela webcam e **me avisa no
-celular se alguem sentar na frente dele**. Nao impede o acesso, nao
-bloqueia nada, so me avisa, para eu poder reagir.
+celular se alguem sentar na frente dele** e **bloqueia o Windows na
+hora** (mesmo efeito de Win+L), entao so entra quem souber a senha.
+Depois de bloquear, o monitoramento para sozinho; para vigiar de novo,
+inicie pela bandeja. O bloqueio pode ser desligado em `config.yaml`
+(`security.lock_on_detection: false`), e ai o X9 so avisa.
 
 O que ele **nao** e:
 
-* Nao e antifurto nem controle de acesso. Nao trava a maquina, nao
-  bloqueia sessao, nao impede ninguem de usar o computador.
+* Nao e antifurto. O bloqueio de sessao depende da senha do Windows:
+  se sua conta nao tem senha, o bloqueio nao protege nada.
 * Nao e vigilancia de outras pessoas. E para monitorar a **sua
   propria** maquina desacompanhada. Se outras pessoas usam ou circulam
   perto desse computador, avise a elas, e verifique as leis locais

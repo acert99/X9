@@ -25,9 +25,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from camera import CameraManager
-from config import Config
+from camera import CameraManager, list_cameras
+from config import Config, save_camera_index
 from detector import PersonDetector
+from locker import lock_workstation
 from notifier import NotificationService
 from paths import resource_path, user_data_dir
 from temporal_filter import TemporalFilter
@@ -54,8 +55,11 @@ def setup_logging(config: Config, log_path: Path) -> None:
 
 
 class X9Agent:
-    def __init__(self, config: Config, model_path: Path) -> None:
+    def __init__(
+        self, config: Config, model_path: Path, config_path: Optional[Path] = None
+    ) -> None:
         self._config = config
+        self._config_path = config_path
         self._logger = logging.getLogger("x9.main")
 
         self._camera = CameraManager(
@@ -86,8 +90,12 @@ class X9Agent:
             on_start=self.start_monitoring,
             on_stop=self.stop_monitoring,
             on_exit=self.shutdown,
+            list_cameras=list_cameras,
+            on_select_camera=self.select_camera,
+            current_camera=lambda: self._camera.index,
         )
 
+        self._lock_screen = lock_workstation
         self._stop_event = threading.Event()
         self._monitor_thread: Optional[threading.Thread] = None
         self._alert_count = 0
@@ -123,6 +131,26 @@ class X9Agent:
         self._tray.update_status(monitoring=False)
         self._logger.info("Monitoramento parado")
 
+    def select_camera(self, index: int) -> None:
+        """Troca a camera pela bandeja e lembra a escolha no config.yaml."""
+        if index == self._camera.index:
+            return
+        was_monitoring = (
+            self._monitor_thread is not None and self._monitor_thread.is_alive()
+        )
+        if was_monitoring:
+            self.stop_monitoring()
+        self._camera.set_index(index)
+        self._config.camera.index = index
+        if self._config_path is not None:
+            try:
+                save_camera_index(self._config_path, index)
+            except (OSError, ValueError):
+                self._logger.exception("Nao consegui gravar a camera escolhida")
+        self._logger.info("Camera trocada para o indice %d", index)
+        if was_monitoring:
+            self.start_monitoring()
+
     def shutdown(self) -> None:
         self.stop_monitoring()
         self._logger.info("X9 encerrado")
@@ -153,7 +181,13 @@ class X9Agent:
                 self._last_detection_at = now
 
             if self._temporal_filter.is_confirmed():
-                sent = self._notifier.notify()
+                locked = False
+                extra_info = ""
+                if self._config.security.lock_on_detection:
+                    locked = self._lock_screen()
+                    extra_info = "PC bloqueado" if locked else "FALHA ao bloquear o PC"
+
+                sent = self._notifier.notify(extra_info)
                 if sent:
                     self._alert_count += 1
                     self._tray.update_status(
@@ -161,6 +195,14 @@ class X9Agent:
                         alert_count=self._alert_count,
                     )
                 self._temporal_filter.reset()
+
+                if locked:
+                    # Para sozinho: quem desbloquear com a senha e o dono,
+                    # e continuar vigiando bloquearia de novo em segundos.
+                    self._camera.release()
+                    self._tray.update_status(monitoring=False)
+                    self._logger.info("PC bloqueado, monitoramento parado")
+                    return
             elif self._ausencia_confirmada(now):
                 # A pessoa foi embora. Libera o cooldown para que a proxima
                 # chegada gere alerta na hora, em vez de ficar engolida pelo
@@ -197,7 +239,7 @@ def main() -> None:
 
     config = Config.load(config_path)
     setup_logging(config, log_path)
-    agent = X9Agent(config, model_path)
+    agent = X9Agent(config, model_path, config_path)
     agent.run()
 
 
