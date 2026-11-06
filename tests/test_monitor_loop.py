@@ -83,6 +83,7 @@ def _montar_agente(absence_seconds, fps, bloquear=False):
     # Nunca usar o bloqueio real aqui: travaria o PC de quem roda os testes.
     agente.bloqueios = []
     agente._lock_screen = lambda: agente.bloqueios.append(1) or True
+    agente._face_auth = None
     agente._stop_event = threading.Event()
     agente._alert_count = 0
     agente._last_detection_at = None
@@ -136,3 +137,62 @@ def test_loop_sem_bloqueio_continua_vigiando():
 
     assert agente.bloqueios == []
     assert len(enviados) == 1
+
+
+class _FaceAuthFalso:
+    def __init__(self, veredito):
+        self.veredito = veredito
+        self.trusted_count = 1
+
+    def classify(self, frame):
+        return self.veredito
+
+
+def test_pessoa_confiavel_avisa_mas_nao_bloqueia():
+    agente, enviados = _montar_agente(absence_seconds=1.0, fps=50, bloquear=True)
+    agente._face_auth = _FaceAuthFalso("trusted")
+    thread = threading.Thread(target=agente._monitor_loop, daemon=True)
+    agente._detector.tem_pessoa = True
+    thread.start()
+    time.sleep(1.5)
+
+    assert thread.is_alive(), "com pessoa confiavel o X9 continua vigiando"
+    agente._stop_event.set()
+    thread.join(timeout=5)
+    assert agente.bloqueios == []
+    assert len(enviados) == 1
+
+
+def test_rosto_desconhecido_bloqueia():
+    agente, enviados = _montar_agente(absence_seconds=1.0, fps=50, bloquear=True)
+    agente._face_auth = _FaceAuthFalso("unknown")
+    thread = threading.Thread(target=agente._monitor_loop, daemon=True)
+    agente._detector.tem_pessoa = True
+    thread.start()
+    thread.join(timeout=3)
+
+    assert len(agente.bloqueios) == 1
+
+
+def test_sem_rosto_visivel_conta_como_estranho():
+    agente, enviados = _montar_agente(absence_seconds=1.0, fps=50, bloquear=True)
+    agente._face_auth = _FaceAuthFalso("no_face")
+    thread = threading.Thread(target=agente._monitor_loop, daemon=True)
+    agente._detector.tem_pessoa = True
+    thread.start()
+    thread.join(timeout=3)
+
+    assert len(agente.bloqueios) == 1
+
+
+def test_bloqueio_avisa_mesmo_em_cooldown():
+    agente, enviados = _montar_agente(absence_seconds=1.0, fps=50, bloquear=True)
+    agente._notifier.notify()  # coloca em cooldown
+    enviados.clear()
+    thread = threading.Thread(target=agente._monitor_loop, daemon=True)
+    agente._detector.tem_pessoa = True
+    thread.start()
+    thread.join(timeout=3)
+
+    assert len(agente.bloqueios) == 1
+    assert len(enviados) == 1, "aviso de bloqueio tem que sair mesmo em cooldown"

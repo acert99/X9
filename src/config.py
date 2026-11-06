@@ -66,6 +66,14 @@ class SecurityConfig:
     # o dono, ao desbloquear com a senha, seria detectado e bloqueado de
     # novo em poucos segundos. Para voltar a vigiar, inicie pela bandeja.
     lock_on_detection: bool = True
+    # Reconhecimento de pessoa confiavel (so vale se houver rosto
+    # cadastrado pela bandeja). Similaridade minima de 0 a 1 para aceitar
+    # um rosto como cadastrado: mais alto = mais exigente (menos chance de
+    # aceitar estranho, mais chance de bloquear o proprio dono).
+    trusted_face_threshold: float = 0.45
+    # Quantos frames olhar ao confirmar presenca antes de decidir se e
+    # pessoa confiavel. Basta um rosto desconhecido para bloquear.
+    trusted_face_frames: int = 6
 
 
 @dataclass
@@ -126,6 +134,10 @@ class Config:
             raise ValueError("detector.positive_frames deve ser maior ou igual a 1")
         if self.detector.absence_seconds <= 0:
             raise ValueError("detector.absence_seconds deve ser maior que zero")
+        if not 0.0 < self.security.trusted_face_threshold <= 1.0:
+            raise ValueError("security.trusted_face_threshold deve estar entre 0 e 1")
+        if self.security.trusted_face_frames < 1:
+            raise ValueError("security.trusted_face_frames deve ser maior ou igual a 1")
         if self.camera.fps <= 0:
             raise ValueError("camera.fps deve ser maior que zero")
 

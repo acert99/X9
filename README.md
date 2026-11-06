@@ -47,6 +47,8 @@ You can still reach the lock screen remotely and unlock it yourself.
 - 🧍 **Person detection** with YOLOX Nano, running 100% locally. No
   cloud, no images saved to disk.
 - 🔒 **Auto-lock** (Win+L) on detection. Can be turned off.
+- 🙂 **Trusted person:** register your face and X9 will not lock the
+  PC for you. It still sends you an alert, just in case.
 - 📱 **Phone alerts** through Apprise, with a cooldown so you are not
   spammed.
 - 📷 **Camera picker** in the tray menu. Works with virtual cameras
@@ -64,7 +66,9 @@ You can still reach the lock screen remotely and unlock it yourself.
    For ntfy: `ntfy://ntfy.sh/x9_<long_random_name>`. Install the ntfy
    app on your phone and subscribe to the same topic.
 3. Right-click the tray icon → **Camera** → pick your camera.
-4. Right-click the tray icon → **Start monitoring**. Then walk away.
+4. *(Optional)* Tray icon → **Pessoa confiavel** → **Cadastrar meu
+   rosto pela camera**, then look at the camera for about 5 seconds.
+5. Right-click the tray icon → **Start monitoring**. Then walk away.
 
 > ⚠️ **Your ntfy topic name is a password.** On public `ntfy.sh` there is
 > no per-topic authentication: anyone who knows the name can read your
@@ -81,8 +85,10 @@ Start monitoring (tray)
    └─ camera opens
        └─ YOLOX checks each frame
            └─ person seen for a few seconds in a row?
-               ├─ yes → phone alert + lock Windows + stop monitoring
-               └─ no  → keep watching
+               ├─ no  → keep watching
+               └─ yes → is it a registered (trusted) face?
+                        ├─ yes → phone alert only, keep watching
+                        └─ no / face not visible → alert + lock + stop
 ```
 
 After locking, **monitoring stops by itself**. Otherwise you, the owner,
@@ -106,6 +112,8 @@ Stored in `%LOCALAPPDATA%\X9\config.yaml`. Full example:
 | Key | Default | What it does |
 |---|---|---|
 | `security.lock_on_detection` | `true` | Lock Windows on detection, then stop monitoring |
+| `security.trusted_face_threshold` | `0.45` | How strict face matching is (0–1). Higher = fewer strangers accepted, more chance of locking yourself |
+| `security.trusted_face_frames` | `6` | Frames checked before deciding. One unknown face is enough to lock |
 | `camera.index` | `0` | Camera to use (easier: pick it in the tray menu) |
 | `detector.confidence` | `0.60` | Minimum score to count as a person |
 | `detector.positive_frames` | `5` | Positive frames needed inside `window_seconds` |
@@ -125,9 +133,18 @@ Stored in `%LOCALAPPDATA%\X9\config.yaml`. Full example:
 - **Credentials are plain text.** `config.yaml` is protected only by
   your Windows user account permissions. It is in `.gitignore` so it
   never lands in a commit.
-- **The model is verified.** `scripts/download_model.py` only accepts
-  the official YOLOX Nano file if its SHA-256 matches
-  (`c789161e…bd18a0b7d`). Otherwise it deletes the file and fails.
+- **The models are verified.** `scripts/download_model.py` only
+  accepts the official YOLOX Nano, YuNet and SFace files if their
+  SHA-256 matches. Otherwise it deletes the file and fails.
+- **Trusted faces are stored as numbers, not photos.** Registering
+  your face saves only a 128-number fingerprint of it in
+  `%LOCALAPPDATA%\X9\trusted_faces.npy`. It never leaves your PC, but
+  it is still biometric data: delete it from the tray menu whenever you
+  want.
+- **Face recognition can be fooled by a photo.** There is no liveness
+  check, so someone holding a picture of you could pass as you. That is
+  why X9 **always alerts you**, even for a trusted face. If the face is
+  not visible (back turned, dark room), X9 treats it as a stranger.
 - **Not encrypted end-to-end.** The push server sees the alert text.
 - **Not anti-theft and not surveillance.** X9 does not know *who* is
   there. It is meant for **your own** machine. If other people use or
@@ -185,6 +202,7 @@ Each module in `src/` does one thing and does not know about the others.
 | `temporal_filter.py` | Confirm presence only after several positive frames |
 | `notifier.py` | Send alerts through Apprise with cooldown |
 | `locker.py` | Lock the Windows session (`LockWorkStation`) |
+| `face_auth.py` | Register and recognize trusted faces (YuNet + SFace) |
 | `tray.py` | Tray icon and menu, including the camera picker |
 | `config.py` | Load, validate and save `config.yaml` |
 | `paths.py` | Resolve paths in script and executable mode |
@@ -196,8 +214,8 @@ Each module in `src/` does one thing and does not know about the others.
 - [x] Detection, alerts, cooldown, tray, installer
 - [x] Auto-lock on detection
 - [x] Camera picker (virtual cameras included)
+- [x] Recognize trusted people by face
 - [ ] Optional snapshot attached to the alert
-- [ ] Recognize authorized people
 - [ ] Swappable models and plugins
 
 ## Credits
@@ -208,6 +226,8 @@ X9 exists thanks to these open source projects:
 |---|---|---|
 | [YOLOX](https://github.com/Megvii-BaseDetection/YOLOX) (Megvii) | Detection model (YOLOX Nano, ONNX) | Apache 2.0 |
 | [OpenCV](https://opencv.org/) | Camera capture and frame processing | Apache 2.0 |
+| [YuNet](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet) (opencv_zoo) | Face detection | MIT |
+| [SFace](https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface) (opencv_zoo) | Face recognition | Apache 2.0 |
 | [ONNX Runtime](https://onnxruntime.ai/) | Model inference | MIT |
 | [Apprise](https://github.com/caronc/apprise) | Notifications | BSD 2-Clause |
 | [ntfy](https://ntfy.sh/) | Recommended push app | Apache 2.0 |

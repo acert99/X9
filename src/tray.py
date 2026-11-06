@@ -37,7 +37,17 @@ class TrayInterface:
         list_cameras: Callable[[], List[Tuple[int, str]]] = lambda: [],
         on_select_camera: Callable[[int], None] = lambda index: None,
         current_camera: Callable[[], int] = lambda: 0,
+        face_enabled: bool = False,
+        trusted_count: Callable[[], int] = lambda: 0,
+        on_enroll_camera: Callable[[], None] = lambda: None,
+        on_enroll_photo: Callable[[str], None] = lambda path: None,
+        on_clear_faces: Callable[[], None] = lambda: None,
     ) -> None:
+        self._face_enabled = face_enabled
+        self._trusted_count = trusted_count
+        self._on_enroll_camera = on_enroll_camera
+        self._on_enroll_photo = on_enroll_photo
+        self._on_clear_faces = on_clear_faces
         self._list_cameras = list_cameras
         self._on_select_camera = on_select_camera
         self._current_camera = current_camera
@@ -91,6 +101,18 @@ class TrayInterface:
                 self._alert_count = alert_count
 
         self._refresh()
+
+    def refresh(self) -> None:
+        self._refresh()
+
+    def notify(self, message: str) -> None:
+        """Balao do Windows saindo do icone da bandeja."""
+        logger.info(message)
+        if self._icon is not None:
+            try:
+                self._icon.notify(message, "X9")
+            except Exception:
+                logger.exception("Falha ao mostrar balao na bandeja")
 
     def _refresh(self) -> None:
         if self._icon is None:
@@ -150,6 +172,9 @@ class TrayInterface:
         return pystray.Menu(
             toggle_item,
             pystray.MenuItem("Camera", self._build_camera_menu()),
+            pystray.MenuItem(
+                "Pessoa confiavel", self._build_face_menu(), visible=self._face_enabled
+            ),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(f"Camera: {status_camera}", None, enabled=False),
             pystray.MenuItem(f"Detector: {status_detector}", None, enabled=False),
@@ -176,6 +201,43 @@ class TrayInterface:
             pystray.MenuItem("Procurar cameras de novo", self._handle_rescan),
         ]
         return pystray.Menu(*items)
+
+    def _build_face_menu(self) -> pystray.Menu:
+        count = self._trusted_count()
+        return pystray.Menu(
+            pystray.MenuItem(f"Amostras cadastradas: {count}", None, enabled=False),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Cadastrar meu rosto pela camera", self._handle_enroll_camera),
+            pystray.MenuItem("Cadastrar a partir de uma foto...", self._handle_enroll_photo),
+            pystray.MenuItem(
+                "Apagar rostos cadastrados", self._handle_clear_faces, enabled=count > 0
+            ),
+        )
+
+    def _handle_enroll_camera(self, icon, item) -> None:
+        # Leva uns segundos: roda fora da thread do menu para nao travar a bandeja.
+        threading.Thread(target=self._on_enroll_camera, daemon=True).start()
+
+    def _handle_enroll_photo(self, icon, item) -> None:
+        def pick() -> None:
+            import tkinter as tk
+            from tkinter import filedialog
+
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes("-topmost", True)
+            path = filedialog.askopenfilename(
+                title="X9 - escolha uma foto sua (so voce na foto)",
+                filetypes=[("Imagens", "*.jpg *.jpeg *.png *.bmp *.webp")],
+            )
+            root.destroy()
+            if path:
+                self._on_enroll_photo(path)
+
+        threading.Thread(target=pick, daemon=True).start()
+
+    def _handle_clear_faces(self, icon, item) -> None:
+        self._on_clear_faces()
 
     def _handle_rescan(self, icon, item) -> None:
         self._cameras = self._list_cameras()

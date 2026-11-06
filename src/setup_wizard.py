@@ -44,6 +44,10 @@ security:
   # Bloqueia o Windows (igual Win+L) ao detectar alguem e para o
   # monitoramento. Para vigiar de novo, inicie pela bandeja.
   lock_on_detection: true
+  # Pessoa confiavel: cadastre seu rosto pela bandeja. Reconhecido, o X9
+  # avisa mas nao bloqueia. Mais alto = mais exigente (0 a 1).
+  trusted_face_threshold: 0.45
+  trusted_face_frames: 6
 
 logging:
   level: INFO

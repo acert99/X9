@@ -41,14 +41,16 @@ class NotificationService:
             if not self._apprise.add(url):
                 logger.warning("URL de notificacao invalida ou nao suportada: %s", url)
 
-    def notify(self, extra_info: str = "") -> bool:
+    def notify(self, extra_info: str = "", force: bool = False) -> bool:
         """Envia a notificacao se o cooldown ja tiver expirado.
 
+        force=True ignora o cooldown: usado quando o PC foi bloqueado, um
+        evento que o dono sempre precisa saber.
         Retorna True se enviou, False se ainda estava em cooldown.
         """
         with self._lock:
             now = time.time()
-            if self._last_sent_at is not None:
+            if self._last_sent_at is not None and not force:
                 elapsed = now - self._last_sent_at
                 if elapsed < self._cooldown_seconds:
                     remaining = self._cooldown_seconds - elapsed

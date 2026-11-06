@@ -48,6 +48,8 @@ e desbloquear.
 - 🧍 **Detecção de pessoas** com YOLOX Nano, 100% local. Sem nuvem e
   sem salvar imagem nenhuma em disco.
 - 🔒 **Bloqueio automático** (Win+L) ao detectar. Dá para desligar.
+- 🙂 **Pessoa confiável:** cadastre seu rosto e o X9 não bloqueia o PC
+  quando for você. Mesmo assim ele te avisa, por garantia.
 - 📱 **Alertas no celular** via Apprise, com cooldown para não lotar
   de notificação.
 - 📷 **Escolha de câmera** no menu da bandeja. Funciona com câmeras
@@ -65,7 +67,9 @@ e desbloquear.
    o ntfy: `ntfy://ntfy.sh/x9_<nome_longo_aleatorio>`. Instale o app
    ntfy no celular e inscreva-se no mesmo tópico.
 3. Botão direito no ícone da bandeja → **Camera** → escolha a câmera.
-4. Botão direito no ícone da bandeja → **Iniciar monitoramento**. Pode
+4. *(Opcional)* Bandeja → **Pessoa confiavel** → **Cadastrar meu
+   rosto pela camera** e olhe para a câmera por uns 5 segundos.
+5. Botão direito no ícone da bandeja → **Iniciar monitoramento**. Pode
    sair.
 
 > ⚠️ **O nome do tópico do ntfy é uma senha.** No `ntfy.sh` público não
@@ -83,8 +87,10 @@ Iniciar monitoramento (bandeja)
    └─ câmera abre
        └─ YOLOX analisa cada frame
            └─ pessoa vista por alguns segundos seguidos?
-               ├─ sim → alerta no celular + bloqueia o Windows + para de vigiar
-               └─ não → continua vigiando
+               ├─ não → continua vigiando
+               └─ sim → é um rosto cadastrado (confiável)?
+                        ├─ sim → só alerta no celular, continua vigiando
+                        └─ não / rosto não aparece → alerta + bloqueia + para
 ```
 
 Depois de bloquear, **o monitoramento para sozinho**. Senão você, o
@@ -108,6 +114,8 @@ Ficam em `%LOCALAPPDATA%\X9\config.yaml`. Exemplo completo:
 | Chave | Padrão | O que faz |
 |---|---|---|
 | `security.lock_on_detection` | `true` | Bloqueia o Windows ao detectar e para de vigiar |
+| `security.trusted_face_threshold` | `0.45` | Exigência do reconhecimento (0 a 1). Mais alto = aceita menos estranhos, mas pode bloquear você |
+| `security.trusted_face_frames` | `6` | Frames analisados antes de decidir. Um rosto desconhecido já basta para bloquear |
 | `camera.index` | `0` | Câmera usada (mais fácil: escolher no menu da bandeja) |
 | `detector.confidence` | `0.60` | Nota mínima para contar como pessoa |
 | `detector.positive_frames` | `5` | Frames positivos necessários dentro de `window_seconds` |
@@ -127,9 +135,19 @@ Ficam em `%LOCALAPPDATA%\X9\config.yaml`. Exemplo completo:
 - **Credenciais ficam em texto puro.** O `config.yaml` é protegido só
   pelas permissões da sua conta do Windows. Ele está no `.gitignore`
   para nunca ir parar num commit.
-- **O modelo é verificado.** O `scripts/download_model.py` só aceita o
-  YOLOX Nano oficial se o SHA-256 bater (`c789161e…bd18a0b7d`). Se não
-  bater, apaga o arquivo e falha.
+- **Os modelos são verificados.** O `scripts/download_model.py` só
+  aceita os arquivos oficiais do YOLOX Nano, YuNet e SFace se o SHA-256
+  bater. Se não bater, apaga o arquivo e falha.
+- **Rostos confiáveis ficam salvos como números, não como foto.** O
+  cadastro guarda só uma "impressão digital" de 128 números do rosto em
+  `%LOCALAPPDATA%\X9\trusted_faces.npy`. Não sai do seu PC, mas
+  continua sendo dado biométrico: apague pelo menu da bandeja quando
+  quiser.
+- **Reconhecimento facial pode ser enganado por foto.** Não há
+  detecção de pessoa viva, então alguém segurando uma foto sua pode
+  passar por você. Por isso o X9 **sempre avisa**, mesmo quando
+  reconhece um rosto confiável. Se o rosto não aparece (de costas,
+  escuro), o X9 trata como estranho.
 - **Sem criptografia de ponta a ponta.** O servidor de push vê o texto
   do alerta.
 - **Não é antifurto nem vigilância.** O X9 não sabe *quem* está ali. É
@@ -187,6 +205,7 @@ Cada módulo em `src/` faz uma coisa só e não conhece os outros.
 | `temporal_filter.py` | Confirmar presença só depois de vários frames positivos |
 | `notifier.py` | Mandar alertas via Apprise com cooldown |
 | `locker.py` | Bloquear a sessão do Windows (`LockWorkStation`) |
+| `face_auth.py` | Cadastrar e reconhecer rostos confiáveis (YuNet + SFace) |
 | `tray.py` | Ícone e menu da bandeja, incluindo a escolha de câmera |
 | `config.py` | Carregar, validar e salvar o `config.yaml` |
 | `paths.py` | Resolver caminhos em modo script e em modo executável |
@@ -198,8 +217,8 @@ Cada módulo em `src/` faz uma coisa só e não conhece os outros.
 - [x] Detecção, alertas, cooldown, bandeja, instalador
 - [x] Bloqueio automático ao detectar
 - [x] Escolha de câmera (incluindo câmeras virtuais)
+- [x] Reconhecer pessoas confiáveis pelo rosto
 - [ ] Foto opcional anexada ao alerta
-- [ ] Reconhecer pessoas autorizadas
 - [ ] Modelos e plugins intercambiáveis
 
 ## Créditos
@@ -210,6 +229,8 @@ O X9 existe graças a estes projetos open source:
 |---|---|---|
 | [YOLOX](https://github.com/Megvii-BaseDetection/YOLOX) (Megvii) | Modelo de detecção (YOLOX Nano, ONNX) | Apache 2.0 |
 | [OpenCV](https://opencv.org/) | Captura da câmera e processamento de frames | Apache 2.0 |
+| [YuNet](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet) (opencv_zoo) | Detecção de rostos | MIT |
+| [SFace](https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface) (opencv_zoo) | Reconhecimento de rostos | Apache 2.0 |
 | [ONNX Runtime](https://onnxruntime.ai/) | Inferência do modelo | MIT |
 | [Apprise](https://github.com/caronc/apprise) | Notificações | BSD 2-Clause |
 | [ntfy](https://ntfy.sh/) | App de push recomendado | Apache 2.0 |

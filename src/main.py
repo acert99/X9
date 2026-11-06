@@ -28,6 +28,7 @@ from typing import Optional
 from camera import CameraManager, list_cameras
 from config import Config, save_camera_index
 from detector import PersonDetector
+from face_auth import FaceAuth
 from locker import lock_workstation
 from notifier import NotificationService
 from paths import resource_path, user_data_dir
@@ -56,7 +57,11 @@ def setup_logging(config: Config, log_path: Path) -> None:
 
 class X9Agent:
     def __init__(
-        self, config: Config, model_path: Path, config_path: Optional[Path] = None
+        self,
+        config: Config,
+        model_path: Path,
+        config_path: Optional[Path] = None,
+        face_auth: Optional[FaceAuth] = None,
     ) -> None:
         self._config = config
         self._config_path = config_path
@@ -93,7 +98,13 @@ class X9Agent:
             list_cameras=list_cameras,
             on_select_camera=self.select_camera,
             current_camera=lambda: self._camera.index,
+            face_enabled=face_auth is not None,
+            trusted_count=lambda: self._face_auth.trusted_count if self._face_auth else 0,
+            on_enroll_camera=self.enroll_from_camera,
+            on_enroll_photo=self.enroll_from_photo,
+            on_clear_faces=self.clear_faces,
         )
+        self._face_auth = face_auth
 
         self._lock_screen = lock_workstation
         self._stop_event = threading.Event()
@@ -151,6 +162,92 @@ class X9Agent:
         if was_monitoring:
             self.start_monitoring()
 
+    # ---------- pessoa confiavel ----------
+
+    def _is_monitoring(self) -> bool:
+        return self._monitor_thread is not None and self._monitor_thread.is_alive()
+
+    def enroll_from_camera(self) -> None:
+        """Tira algumas fotos pela camera e cadastra o rosto (so o vetor)."""
+        if self._face_auth is None:
+            return
+        if self._is_monitoring():
+            self._tray.notify("Pare o monitoramento antes de cadastrar o rosto.")
+            return
+        self._tray.notify("Olhe para a camera por uns 5 segundos...")
+        if not self._camera.open():
+            self._tray.notify("Nao consegui abrir a camera.")
+            return
+        frames = []
+        try:
+            for _ in range(10):
+                frame = self._camera.read_frame()
+                if frame is not None:
+                    frames.append(frame)
+                time.sleep(0.5)
+        finally:
+            self._camera.release()
+        added = self._face_auth.enroll(frames)
+        if added >= 3:
+            self._tray.notify(f"Rosto cadastrado ({added} amostras).")
+        elif added:
+            self._tray.notify(
+                f"So {added} amostra(s) boa(s). Funciona, mas cadastre de novo "
+                "com mais luz para reconhecer melhor."
+            )
+        else:
+            self._tray.notify(
+                "Nenhum rosto cadastrado. Fique sozinho na frente da camera, "
+                "com o rosto iluminado, e tente de novo."
+            )
+        self._tray.refresh()
+
+    def enroll_from_photo(self, path: str) -> None:
+        if self._face_auth is None or not path:
+            return
+        import cv2
+        import numpy as np
+
+        # np.fromfile + imdecode aceita caminho com acento, cv2.imread nao.
+        image = cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
+        if image is None:
+            self._tray.notify("Nao consegui abrir essa imagem.")
+            return
+        added = self._face_auth.enroll([image])
+        self._tray.notify(
+            "Rosto cadastrado a partir da foto."
+            if added
+            else "A foto precisa ter exatamente um rosto bem visivel."
+        )
+        self._tray.refresh()
+
+    def clear_faces(self) -> None:
+        if self._face_auth is not None:
+            self._face_auth.clear()
+            self._tray.notify("Rostos confiaveis apagados.")
+            self._tray.refresh()
+
+    def _check_trusted(self, first_frame) -> bool:
+        """Olha alguns frames: confiavel so se aparecer rosto cadastrado
+        e nenhum rosto desconhecido. Sem rosto visivel conta como estranho."""
+        if self._face_auth is None or self._face_auth.trusted_count == 0:
+            return False
+        interval = 1.0 / self._config.camera.fps
+        saw_trusted = False
+        frame = first_frame
+        for i in range(self._config.security.trusted_face_frames):
+            if i > 0:
+                time.sleep(interval)
+                frame = self._camera.read_frame()
+            if frame is None:
+                continue
+            verdict = self._face_auth.classify(frame)
+            if verdict == "unknown":
+                return False
+            if verdict == "trusted":
+                saw_trusted = True
+        return saw_trusted
+
     def shutdown(self) -> None:
         self.stop_monitoring()
         self._logger.info("X9 encerrado")
@@ -183,11 +280,16 @@ class X9Agent:
             if self._temporal_filter.is_confirmed():
                 locked = False
                 extra_info = ""
-                if self._config.security.lock_on_detection:
+                trusted = self._check_trusted(frame)
+                if trusted:
+                    # Mesmo confiavel, avisa: reconhecimento facial sem
+                    # deteccao de pessoa viva pode ser enganado por foto.
+                    extra_info = "pessoa confiavel reconhecida, PC NAO bloqueado"
+                elif self._config.security.lock_on_detection:
                     locked = self._lock_screen()
                     extra_info = "PC bloqueado" if locked else "FALHA ao bloquear o PC"
 
-                sent = self._notifier.notify(extra_info)
+                sent = self._notifier.notify(extra_info, force=locked)
                 if sent:
                     self._alert_count += 1
                     self._tray.update_status(
@@ -239,7 +341,23 @@ def main() -> None:
 
     config = Config.load(config_path)
     setup_logging(config, log_path)
-    agent = X9Agent(config, model_path, config_path)
+
+    face_auth = None
+    det_model = resource_path("models/face_detection_yunet_2023mar.onnx")
+    rec_model = resource_path("models/face_recognition_sface_2021dec.onnx")
+    if det_model.exists() and rec_model.exists():
+        face_auth = FaceAuth(
+            det_model,
+            rec_model,
+            data_dir / "trusted_faces.npy",
+            threshold=config.security.trusted_face_threshold,
+        )
+    else:
+        logging.getLogger("x9.main").warning(
+            "Modelos de rosto ausentes, reconhecimento de pessoa confiavel desligado"
+        )
+
+    agent = X9Agent(config, model_path, config_path, face_auth)
     agent.run()
 
 

@@ -35,9 +35,12 @@ echo Instalando dependencias...
 pip install -r requirements.txt
 pip install pyinstaller
 
-if not exist models\yolox_nano.onnx (
-    echo Baixando o modelo de deteccao...
-    python scripts\download_model.py
+REM Confere (e baixa se faltar) todos os modelos, com SHA-256.
+python scripts\download_model.py
+if errorlevel 1 (
+    echo ERRO: falha ao baixar ou conferir os modelos.
+    pause
+    exit /b 1
 )
 
 echo.
