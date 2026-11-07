@@ -93,11 +93,18 @@ class FaceAuth:
             embeddings = self.embeddings(frame)
             if len(embeddings) == 1:
                 new.append(embeddings[0])
-        if new:
-            self._trusted = np.vstack([self._trusted, np.array(new, dtype=np.float32)])
-            self._save()
-            logger.info("%d amostra(s) de rosto cadastrada(s)", len(new))
-        return len(new)
+        return self.add_embeddings(new)
+
+    def add_embeddings(self, embeddings: List[np.ndarray]) -> int:
+        """Grava vetores ja calculados (ex.: vindos do cadastro guiado)."""
+        if not embeddings:
+            return 0
+        self._trusted = np.vstack(
+            [self._trusted, np.array(embeddings, dtype=np.float32).reshape(-1, 128)]
+        )
+        self._save()
+        logger.info("%d amostra(s) de rosto cadastrada(s)", len(embeddings))
+        return len(embeddings)
 
     def clear(self) -> None:
         self._trusted = np.zeros((0, 128), dtype=np.float32)
@@ -106,21 +113,23 @@ class FaceAuth:
 
     # ---------- reconhecimento ----------
 
-    def embeddings(self, frame: np.ndarray) -> np.ndarray:
-        """Vetores normalizados (N x 128) de todos os rostos do frame."""
+    def detect(self, frame: np.ndarray) -> np.ndarray:
+        """Rostos do frame no formato do YuNet (N x 15: caixa, 5 pontos, nota)."""
         h, w = frame.shape[:2]
         self._detector.setInputSize((w, h))
         _, faces = self._detector.detect(frame)
-        if faces is None:
-            return np.zeros((0, 128), dtype=np.float32)
+        return np.zeros((0, 15), dtype=np.float32) if faces is None else faces
 
-        out: List[np.ndarray] = []
-        for face in faces:
-            aligned = self._recognizer.alignCrop(frame, face)
-            vec = self._recognizer.feature(aligned).flatten().astype(np.float32)
-            norm = np.linalg.norm(vec)
-            if norm > 0:
-                out.append(vec / norm)
+    def embed(self, frame: np.ndarray, face: np.ndarray) -> np.ndarray:
+        """Vetor normalizado (128) de um rosto ja detectado."""
+        aligned = self._recognizer.alignCrop(frame, face)
+        vec = self._recognizer.feature(aligned).flatten().astype(np.float32)
+        norm = np.linalg.norm(vec)
+        return vec / norm if norm > 0 else vec
+
+    def embeddings(self, frame: np.ndarray) -> np.ndarray:
+        """Vetores normalizados (N x 128) de todos os rostos do frame."""
+        out = [self.embed(frame, face) for face in self.detect(frame)]
         return np.array(out, dtype=np.float32).reshape(-1, 128)
 
     def classify(self, frame: np.ndarray) -> Verdict:

@@ -67,7 +67,9 @@ You can still reach the lock screen remotely and unlock it yourself.
    app on your phone and subscribe to the same topic.
 3. Right-click the tray icon → **Camera** → pick your camera.
 4. *(Optional)* Tray icon → **Pessoa confiavel** → **Cadastrar meu
-   rosto pela camera**, then look at the camera for about 5 seconds.
+   rosto pela camera**. A window shows the camera and guides you
+   through 7 poses (front, both sides, chin up and down, close, far).
+   About 1 minute. The more poses, the better X9 recognizes you.
 5. Right-click the tray icon → **Start monitoring**. Then walk away.
 
 > ⚠️ **Your ntfy topic name is a password.** On public `ntfy.sh` there is
@@ -203,6 +205,7 @@ Each module in `src/` does one thing and does not know about the others.
 | `notifier.py` | Send alerts through Apprise with cooldown |
 | `locker.py` | Lock the Windows session (`LockWorkStation`) |
 | `face_auth.py` | Register and recognize trusted faces (YuNet + SFace) |
+| `enroll_guide.py` / `enroll_window.py` | Guided face registration: pose checks and the live camera window |
 | `tray.py` | Tray icon and menu, including the camera picker |
 | `config.py` | Load, validate and save `config.yaml` |
 | `paths.py` | Resolve paths in script and executable mode |

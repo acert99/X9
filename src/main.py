@@ -105,6 +105,7 @@ class X9Agent:
             on_clear_faces=self.clear_faces,
         )
         self._face_auth = face_auth
+        self._enrolling = False
 
         self._lock_screen = lock_workstation
         self._stop_event = threading.Event()
@@ -168,38 +169,44 @@ class X9Agent:
         return self._monitor_thread is not None and self._monitor_thread.is_alive()
 
     def enroll_from_camera(self) -> None:
-        """Tira algumas fotos pela camera e cadastra o rosto (so o vetor)."""
+        """Cadastro guiado: janela com a camera ao vivo pedindo poses
+        variadas (de frente, lados, queixo, perto, longe). So o vetor de
+        cada rosto e salvo, nunca a imagem."""
         if self._face_auth is None:
             return
         if self._is_monitoring():
             self._tray.notify("Pare o monitoramento antes de cadastrar o rosto.")
             return
-        self._tray.notify("Olhe para a camera por uns 5 segundos...")
-        if not self._camera.open():
-            self._tray.notify("Nao consegui abrir a camera.")
+        if self._enrolling:
             return
-        frames = []
+        self._enrolling = True
         try:
-            for _ in range(10):
-                frame = self._camera.read_frame()
-                if frame is not None:
-                    frames.append(frame)
-                time.sleep(0.5)
+            from enroll_window import run_guided_enrollment
+
+            # Camera propria com fps maior, para a previa ficar fluida.
+            camera = CameraManager(
+                index=self._camera.index,
+                width=self._config.camera.width,
+                height=self._config.camera.height,
+                fps=15,
+                open_retries=1,
+            )
+            samples = run_guided_enrollment(camera, self._face_auth)
+        except Exception:
+            self._logger.exception("Falha no cadastro guiado")
+            self._tray.notify("Erro no cadastro de rosto, veja o x9.log.")
+            return
         finally:
-            self._camera.release()
-        added = self._face_auth.enroll(frames)
-        if added >= 3:
+            self._enrolling = False
+
+        if samples is None:
+            self._tray.notify("Cadastro cancelado ou camera indisponivel. Nada foi salvo.")
+            return
+        added = self._face_auth.add_embeddings(samples)
+        if added:
             self._tray.notify(f"Rosto cadastrado ({added} amostras).")
-        elif added:
-            self._tray.notify(
-                f"So {added} amostra(s) boa(s). Funciona, mas cadastre de novo "
-                "com mais luz para reconhecer melhor."
-            )
         else:
-            self._tray.notify(
-                "Nenhum rosto cadastrado. Fique sozinho na frente da camera, "
-                "com o rosto iluminado, e tente de novo."
-            )
+            self._tray.notify("Nenhuma amostra boa. Tente com mais luz.")
         self._tray.refresh()
 
     def enroll_from_photo(self, path: str) -> None:

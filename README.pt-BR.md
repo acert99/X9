@@ -68,7 +68,10 @@ e desbloquear.
    ntfy no celular e inscreva-se no mesmo tópico.
 3. Botão direito no ícone da bandeja → **Camera** → escolha a câmera.
 4. *(Opcional)* Bandeja → **Pessoa confiavel** → **Cadastrar meu
-   rosto pela camera** e olhe para a câmera por uns 5 segundos.
+   rosto pela camera**. Uma janela mostra a câmera e te guia por 7
+   poses (de frente, os dois lados, queixo para cima e para baixo,
+   perto e longe). Leva uns 1 minuto. Quanto mais poses, melhor o X9
+   te reconhece.
 5. Botão direito no ícone da bandeja → **Iniciar monitoramento**. Pode
    sair.
 
@@ -206,6 +209,7 @@ Cada módulo em `src/` faz uma coisa só e não conhece os outros.
 | `notifier.py` | Mandar alertas via Apprise com cooldown |
 | `locker.py` | Bloquear a sessão do Windows (`LockWorkStation`) |
 | `face_auth.py` | Cadastrar e reconhecer rostos confiáveis (YuNet + SFace) |
+| `enroll_guide.py` / `enroll_window.py` | Cadastro guiado: checagem de pose e janela com a câmera ao vivo |
 | `tray.py` | Ícone e menu da bandeja, incluindo a escolha de câmera |
 | `config.py` | Carregar, validar e salvar o `config.yaml` |
 | `paths.py` | Resolver caminhos em modo script e em modo executável |
