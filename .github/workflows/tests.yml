@@ -30,4 +30,8 @@ jobs:
           pip install pytest
 
       - name: Run tests
+        # O runner nao tem tela. Sem isto o pystray tenta abrir o X11 ja no
+        # import (tray.py, importado pelos testes do loop) e derruba a suite.
+        env:
+          PYSTRAY_BACKEND: dummy
         run: pytest tests/ -v
