@@ -84,6 +84,7 @@ def _montar_agente(absence_seconds, fps, bloquear=False):
     agente.bloqueios = []
     agente._lock_screen = lambda: agente.bloqueios.append(1) or True
     agente._face_auth = None
+    agente._last_alert_trusted = False
     agente._stop_event = threading.Event()
     agente._alert_count = 0
     agente._last_detection_at = None
@@ -196,3 +197,26 @@ def test_bloqueio_avisa_mesmo_em_cooldown():
 
     assert len(agente.bloqueios) == 1
     assert len(enviados) == 1, "aviso de bloqueio tem que sair mesmo em cooldown"
+
+
+class _FaceAuthRoteiro:
+    """Devolve vereditos em sequencia: simula o dono saindo e um
+    estranho sentando logo em seguida."""
+
+    def __init__(self, vereditos):
+        self.vereditos = list(vereditos)
+        self.trusted_count = 1
+
+    def classify(self, frame):
+        return self.vereditos.pop(0) if len(self.vereditos) > 1 else self.vereditos[0]
+
+
+def test_estranho_depois_do_dono_avisa_mesmo_sem_bloqueio():
+    """Alerta de 'pessoa confiavel' nao pode engolir, pelo cooldown, o
+    alerta de um estranho que senta logo depois."""
+    agente, enviados = _montar_agente(absence_seconds=60.0, fps=50, bloquear=False)
+    agente._config.security.trusted_face_frames = 1
+    agente._face_auth = _FaceAuthRoteiro(["trusted", "unknown"])
+    _rodar(agente, enviados, [(1.5, True)])
+
+    assert len(enviados) == 2, f"esperado alerta do dono e do estranho, veio {len(enviados)}"

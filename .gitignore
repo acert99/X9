@@ -10,3 +10,8 @@ build/
 config.yaml
 stdout.log
 stderr.log
+
+# Dado biometrico (vetores do rosto). Rodando pelo codigo, a pasta de
+# dados e a raiz do projeto: nunca pode ir para o git.
+trusted_faces.npy
+*.npy

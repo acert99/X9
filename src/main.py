@@ -106,6 +106,7 @@ class X9Agent:
         )
         self._face_auth = face_auth
         self._enrolling = False
+        self._last_alert_trusted = False
 
         self._lock_screen = lock_workstation
         self._stop_event = threading.Event()
@@ -131,6 +132,7 @@ class X9Agent:
         self._stop_event.clear()
         self._temporal_filter.reset()
         self._last_detection_at = None
+        self._last_alert_trusted = False
         self._monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._monitor_thread.start()
         self._logger.info("Monitoramento iniciado")
@@ -211,6 +213,9 @@ class X9Agent:
 
     def enroll_from_photo(self, path: str) -> None:
         if self._face_auth is None or not path:
+            return
+        if self._is_monitoring():
+            self._tray.notify("Pare o monitoramento antes de cadastrar o rosto.")
             return
         import cv2
         import numpy as np
@@ -296,7 +301,13 @@ class X9Agent:
                     locked = self._lock_screen()
                     extra_info = "PC bloqueado" if locked else "FALHA ao bloquear o PC"
 
-                sent = self._notifier.notify(extra_info, force=locked)
+                # Estranho logo depois de um alerta de pessoa confiavel tem que
+                # avisar na hora: o cooldown aberto pelo alerta do dono nao pode
+                # engolir a chegada de outra pessoa.
+                force = locked or (not trusted and self._last_alert_trusted)
+                sent = self._notifier.notify(extra_info, force=force)
+                if sent:
+                    self._last_alert_trusted = trusted
                 if sent:
                     self._alert_count += 1
                     self._tray.update_status(

@@ -142,7 +142,7 @@ class FaceAuth:
     def _load(self) -> np.ndarray:
         if self._store_path.exists():
             try:
-                data = np.load(self._store_path).astype(np.float32)
+                data = np.load(self._store_path, allow_pickle=False).astype(np.float32)
                 if data.ndim == 2 and data.shape[1] == 128:
                     return data
                 logger.warning("trusted_faces.npy em formato inesperado, ignorado")
