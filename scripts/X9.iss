@@ -10,7 +10,7 @@
 ;      Inno Setup Compiler e clique em Compile.
 
 #define MyAppName "X9"
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.1"
 #define MyAppExeName "X9.exe"
 
 [Setup]
